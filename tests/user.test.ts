@@ -12,7 +12,7 @@ const user = {
 
 test('a user is added successfully', async () => {
   const response = await request(app)
-    .post('/user')
+    .post('/api/user')
     .send(user)
     .set('Accept', 'application/json')
     .expect('Content-Type', /json/)
@@ -23,7 +23,7 @@ test('a user is added successfully', async () => {
 
 test('a user with the same email is rejected', () => {
   return request(app)
-    .post('/user')
+    .post('/api/user')
     .send(user)
     .set('Accept', 'application/json')
     .expect('Content-Type', /json/)
@@ -32,7 +32,7 @@ test('a user with the same email is rejected', () => {
 
 test('correct list of users returned', async () => {
   const response = await request(app)
-    .get('/user')
+    .get('/api/user')
     .expect('Content-Type', /json/)
     .expect(200)
 
