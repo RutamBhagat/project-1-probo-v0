@@ -1,8 +1,8 @@
-import { handleMintTokens } from '@/controllers/trade-controllers'
+import { handleAddBalance } from '@/controllers/trade-controllers'
 import { Router } from 'express'
 
 const router = Router()
 
-router.post('/mint', handleMintTokens)
+router.post('/mint', handleAddBalance)
 
 export default router

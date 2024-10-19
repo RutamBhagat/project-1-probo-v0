@@ -1,4 +1,4 @@
-import { mintTokens } from '@/services/trade-services'
+import { addBalance } from '@/services/trade-services'
 import { Request, Response } from 'express'
 
 export const handleAddBalance = async (
@@ -7,7 +7,7 @@ export const handleAddBalance = async (
 ): Promise<void> => {
   try {
     const { userId, amount } = req.body
-    await mintTokens({ userId, amount })
+    await addBalance({ userId, amount })
     res
       .status(200)
       .json({ message: `Onramped ${userId} with amount ${amount}` })

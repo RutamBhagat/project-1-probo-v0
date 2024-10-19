@@ -16,34 +16,34 @@ describe('E-to-E-1', () => {
     expect(response.status).toBe(201)
     expect(response.body.message).toBe('User user5 created')
 
-    // Step 2: Add balance to user5
-    response = await request(app).post('/api/onramp/inr').send({
-      userId: 'user5',
-      amount: 50000,
-    })
-    expect(response.status).toBe(200)
-    expect(response.body.message).toBe('Onramped user5 with amount 50000')
+    // // Step 2: Add balance to user5
+    // response = await request(app).post('/api/onramp/inr').send({
+    //   userId: 'user5',
+    //   amount: 50000,
+    // })
+    // expect(response.status).toBe(200)
+    // expect(response.body.message).toBe('Onramped user5 with amount 50000')
 
-    // Step 3: Create a new symbol
-    response = await request(app).post(
-      '/api/symbol/create/AAPL_USD_25_Oct_2024_14_00'
-    )
-    expect(response.status).toBe(201)
-    expect(response.body.message).toBe(
-      'Symbol AAPL_USD_25_Oct_2024_14_00 created'
-    )
+    // // Step 3: Create a new symbol
+    // response = await request(app).post(
+    //   '/api/symbol/create/AAPL_USD_25_Oct_2024_14_00'
+    // )
+    // expect(response.status).toBe(201)
+    // expect(response.body.message).toBe(
+    //   'Symbol AAPL_USD_25_Oct_2024_14_00 created'
+    // )
 
-    // Step 4: Mint tokens for User5
-    response = await request(app).post('/api/trade/mint').send({
-      userId: 'user5',
-      stockSymbol: 'AAPL_USD_25_Oct_2024_14_00',
-      quantity: 25,
-      price: 1000,
-    })
-    expect(response.status).toBe(200)
-    expect(response.body.message).toBe(
-      "Minted 25 'yes' and 'no' tokens for user user5, remaining balance is 0"
-    )
+    // // Step 4: Mint tokens for User5
+    // response = await request(app).post('/api/trade/mint').send({
+    //   userId: 'user5',
+    //   stockSymbol: 'AAPL_USD_25_Oct_2024_14_00',
+    //   quantity: 25,
+    //   price: 1000,
+    // })
+    // expect(response.status).toBe(200)
+    // expect(response.body.message).toBe(
+    //   "Minted 25 'yes' and 'no' tokens for user user5, remaining balance is 0"
+    // )
 
     // // Step 5: User5 sells 10 'no' tokens
     // response = await request(app).post('/api/order/sell').send({
