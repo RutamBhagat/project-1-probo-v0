@@ -7,11 +7,11 @@ export const handleUserOnramp = async (
 ): Promise<void> => {
   try {
     const { userId, amount } = req.body
-    await onrampUserBalance({ userId, balance: amount })
+    await onrampUserBalance({ userId, amount })
     res
       .status(200)
       .json({ message: `Onramped ${userId} with amount ${amount}` })
   } catch (error) {
-    res.status(500).json({ error: 'Failed to clear database' })
+    res.status(500).json({ error: 'Failed to onramp money' })
   }
 }

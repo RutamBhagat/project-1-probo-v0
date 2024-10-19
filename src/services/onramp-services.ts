@@ -2,15 +2,15 @@ import { prisma } from '@/app'
 
 export async function onrampUserBalance({
   userId,
-  balance,
+  amount,
 }: {
   userId: string
-  balance: number
+  amount: number
 }) {
   const result = await prisma.inrBalance.create({
     data: {
       userId,
-      balance,
+      balance: amount,
     },
   })
   return result
