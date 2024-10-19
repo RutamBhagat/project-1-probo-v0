@@ -16,7 +16,7 @@ describe('E-to-E-1', () => {
     expect(response.status).toBe(201)
     expect(response.body.message).toBe('User user5 created')
 
-    // // Step 2: Add balance to user5
+    // Step 2: Add balance to user5
     // response = await request(app).post('/api/onramp/inr').send({
     //   userId: 'user5',
     //   amount: 50000,

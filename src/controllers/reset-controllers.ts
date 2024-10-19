@@ -1,5 +1,5 @@
+import { clearDatabase } from '@/services/reset-services'
 import { Request, Response } from 'express'
-import { clearDatabase } from '../services/reset-services'
 
 export const handleClearDatabase = async (
   req: Request,

@@ -1,5 +1,5 @@
+import { handleClearDatabase } from '@/controllers/reset-controllers'
 import { Router } from 'express'
-import { handleClearDatabase } from '../controllers/reset-controllers'
 
 const router = Router()
 

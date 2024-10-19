@@ -1,28 +1,13 @@
+import {
+  handleCreateUser,
+  handleGetAllUsers,
+} from '@/controllers/user-controllers'
 import { Router } from 'express'
-import { prisma } from '../app'
 
 const router = Router()
 
-router.get(`/`, async (_req, res) => {
-  const result = await prisma.user.findMany()
-  res.json(result)
-})
+router.get('/', handleGetAllUsers)
 
-router.post(`/`, async (req, res) => {
-  const { name, email } = req.body
-  try {
-    const result = await prisma.user.create({
-      data: {
-        name,
-        email,
-      },
-    })
-    res.json(result)
-  } catch (e) {
-    res.status(409).json({
-      error: 'User already exists!',
-    })
-  }
-})
+router.post('/create/:userId', handleCreateUser)
 
 export default router

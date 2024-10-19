@@ -1,4 +1,4 @@
-import { prisma } from '../app'
+import { prisma } from '@/app'
 
 export async function clearDatabase() {
   await prisma.user.deleteMany({})

@@ -5,15 +5,10 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-const user = {
-  name: 'user 1',
-  email: 'user1@a.com',
-}
-
 test('a user is added successfully', async () => {
   const response = await request(app)
-    .post('/api/user')
-    .send(user)
+    .post('/api/user/user_1')
+    .send()
     .set('Accept', 'application/json')
     .expect('Content-Type', /json/)
     .expect(200)
@@ -23,8 +18,8 @@ test('a user is added successfully', async () => {
 
 test('a user with the same email is rejected', () => {
   return request(app)
-    .post('/api/user')
-    .send(user)
+    .post('/api/user/user_1')
+    .send()
     .set('Accept', 'application/json')
     .expect('Content-Type', /json/)
     .expect(409)

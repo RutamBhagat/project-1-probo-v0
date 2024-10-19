@@ -4,6 +4,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "ts-node-dev --respawn src/index.ts",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "bun prisma db seed",
     "test": "jest"
   },
   "prettier": {
@@ -11,7 +14,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@prisma/client": "5.21.1",
+    "@prisma/client": "^5.21.1",
     "consola": "^3.2.3",
     "express": "4.21.1",
     "jest-config": "29.7.0",
@@ -25,7 +28,7 @@
     "jest": "29.7.0",
     "jest-environment-node": "29.7.0",
     "nanoid": "5.0.7",
-    "prisma": "5.21.1",
+    "prisma": "^5.21.1",
     "supertest": "^7.0.0",
     "ts-jest": "29.2.5",
     "ts-node": "10.9.2",

@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import userRouter from './user-routes'
-import resetRouter from './reset-routes'
+import userRouter from '@/routes/user-routes'
+import resetRouter from '@/routes/reset-routes'
 
 const router = Router()
 
