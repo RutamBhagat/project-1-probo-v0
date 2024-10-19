@@ -3,17 +3,6 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export const createUser = async (userId: string) => {
-  await prisma.user.create({
-    data: {
-      id: userId,
-      inrBalance: {
-        create: {}, // Creates with default balance of 0
-      },
-    },
-  })
-}
-
 export const addInrBalance = async (userId: string, amount: bigint) => {
   await prisma.inrTransaction.create({
     data: {

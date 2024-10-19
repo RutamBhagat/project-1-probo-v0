@@ -5,10 +5,13 @@ export async function getAllUsers() {
   return result
 }
 
-export async function createUser(id: string) {
+export const createUser = async (userId: string) => {
   const result = await prisma.user.create({
     data: {
-      id,
+      id: userId,
+      inrBalance: {
+        create: {},
+      },
     },
   })
   return result
