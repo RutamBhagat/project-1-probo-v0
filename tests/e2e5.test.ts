@@ -1,9 +1,13 @@
 import request from 'supertest'
-import { app } from '../src/app'
+import { app, prisma } from '../src/app'
 
-describe('E-to-E-5', () => {
+describe('E-to-E-1', () => {
   beforeAll(async () => {
-    await request(app).post('/api/reset') // Reset the data values
+    await request(app).post('/api/reset') // resets the data values
+  })
+
+  afterAll(async () => {
+    await prisma.$disconnect()
   })
 
   it('should handle multiple matching orders and price priorities correctly', async () => {

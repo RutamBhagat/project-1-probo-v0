@@ -1,9 +1,13 @@
 import request from 'supertest'
-import { app } from '../src/app'
+import { app, prisma } from '../src/app'
 
-describe('E-to-E-2', () => {
+describe('E-to-E-1', () => {
   beforeAll(async () => {
     await request(app).post('/api/reset') // resets the data values
+  })
+
+  afterAll(async () => {
+    await prisma.$disconnect()
   })
 
   it('this test checks the response values , status as well as state of the variables at regular intervals', async () => {
