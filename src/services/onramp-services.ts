@@ -1,6 +1,6 @@
 import { prisma } from '@/app'
 
-export async function onrampUserBalance({
+export async function addBalance({
   userId,
   amount,
 }: {

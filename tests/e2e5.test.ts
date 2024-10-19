@@ -22,7 +22,7 @@ describe('E-to-E-1', () => {
 
     // Step 2: Create a symbol
     response = await request(app).post(
-      '/symbol/create/ETH_USD_15_Oct_2024_12_00'
+      '/api/symbol/create/ETH_USD_15_Oct_2024_12_00'
     )
     expect(response.status).toBe(201)
     expect(response.body.message).toBe(
@@ -31,10 +31,10 @@ describe('E-to-E-1', () => {
 
     // Step 3: Add balance to users
     await request(app)
-      .post('/onramp/inr')
+      .post('/api/onramp/inr')
       .send({ userId: 'user1', amount: 500000 })
     await request(app)
-      .post('/onramp/inr')
+      .post('/api/onramp/inr')
       .send({ userId: 'user2', amount: 300000 })
 
     // Check INR balances after adding funds
@@ -180,10 +180,10 @@ describe('E-to-E-1', () => {
 
     // Step 2: Add balance to users (in paise)
     await request(app)
-      .post('/onramp/inr')
+      .post('/api/onramp/inr')
       .send({ userId: 'user1', amount: 50000000 })
     await request(app)
-      .post('/onramp/inr')
+      .post('/api/onramp/inr')
       .send({ userId: 'user2', amount: 30000000 })
 
     // Step 3: Create a symbol

@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id              String           @id
+  id              String           @id @unique
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at")
   inrBalance      InrBalance?
@@ -35,7 +35,7 @@ model InrBalance {
 }
 
 model Symbol {
-  id            String         @id
+  id            String         @id @unique
   expiryDate    DateTime       @map("expiry_date")
   baseAsset     String         @map("base_asset")
   quoteAsset    String         @map("quote_asset")

@@ -34,7 +34,7 @@ describe('E-to-E-1', () => {
 
     // Step 3: Create a new symbol
     response = await request(app).post(
-      '/symbol/create/ETH_USD_20_Oct_2024_10_00'
+      '/api/symbol/create/ETH_USD_20_Oct_2024_10_00'
     )
     expect(response.status).toBe(201)
     expect(response.body.message).toBe(

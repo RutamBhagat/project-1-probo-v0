@@ -1,13 +1,13 @@
-import { onrampUserBalance } from '@/services/onramp-services'
+import { addBalance } from '@/services/onramp-services'
 import { Request, Response } from 'express'
 
-export const handleUserOnramp = async (
+export const handleAddBalance = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const { userId, amount } = req.body
-    await onrampUserBalance({ userId, amount })
+    await addBalance({ userId, amount })
     res
       .status(200)
       .json({ message: `Onramped ${userId} with amount ${amount}` })

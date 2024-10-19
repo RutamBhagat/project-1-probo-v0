@@ -5,10 +5,10 @@ export async function getAllUsers() {
   return result
 }
 
-export async function createUser(userId: string) {
+export async function createUser(id: string) {
   const result = await prisma.user.create({
     data: {
-      id: userId,
+      id,
     },
   })
   return result

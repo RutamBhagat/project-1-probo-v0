@@ -17,10 +17,10 @@ export const handleCreateUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { userId } = req.params
+  const { id } = req.params
   try {
-    const result = await createUser(userId)
-    res.status(201).json({ message: `User ${userId} created` })
+    await createUser(id)
+    res.status(201).json({ message: `User ${id} created` })
   } catch (e) {
     res.status(409).json({
       error: 'User already exists!',
