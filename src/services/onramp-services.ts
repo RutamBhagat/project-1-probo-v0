@@ -1,17 +1,20 @@
 import { prisma } from '@/app'
 
-export async function addBalance({
-  userId,
-  amount,
-}: {
-  userId: string
-  amount: number
-}) {
-  const result = await prisma.inrBalance.create({
+export const addInrBalance = async (userId: string, amount: bigint) => {
+  await prisma.inrTransaction.create({
     data: {
       userId,
-      balance: amount,
+      amount,
+      transactionType: 'DEPOSIT',
     },
   })
-  return result
+
+  await prisma.inrBalance.update({
+    where: { userId },
+    data: {
+      balance: {
+        increment: amount,
+      },
+    },
+  })
 }

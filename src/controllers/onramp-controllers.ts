@@ -1,17 +1,17 @@
-// import { mintTokens } from '@/services/trade-services'
+import { addInrBalance } from '@/services/onramp-services'
 import { Request, Response } from 'express'
 
-export const handleMintTokens = async (
+export const handleOnrampInr = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { userId, stockSymbol, quantity, price } = req.body
-    // await mintTokens({ userId, stockSymbol, quantity, price })
-    res.status(200).json({
-      message: `Minted ${quantity} 'yes' and 'no' tokens for user user5, remaining balance is 0`,
-    })
+    const { userId, amount } = req.body
+    await addInrBalance(userId, amount)
+    res
+      .status(200)
+      .json({ message: `Onramped ${userId} with amount ${amount}` })
   } catch (error) {
-    res.status(500).json({ error: 'Failed to mint tokens' })
+    res.status(500).json({ error: 'Failed to onramp money' })
   }
 }

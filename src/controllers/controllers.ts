@@ -2,18 +2,6 @@
 import { Request, Response } from 'express'
 import * as service from '../services/services'
 
-export const onrampInr = async (req: Request, res: Response) => {
-  try {
-    const { userId, amount } = req.body
-    await service.addInrBalance(userId, BigInt(amount))
-    return res
-      .status(200)
-      .json({ message: `Onramped ${userId} with amount ${amount}` })
-  } catch (error) {
-    return res.status(500).json({ error })
-  }
-}
-
 export const createSymbol = async (req: Request, res: Response) => {
   try {
     const symbolId = req.params.symbolId

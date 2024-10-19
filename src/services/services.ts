@@ -3,25 +3,6 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export const addInrBalance = async (userId: string, amount: bigint) => {
-  await prisma.inrTransaction.create({
-    data: {
-      userId,
-      amount,
-      transactionType: 'DEPOSIT',
-    },
-  })
-
-  await prisma.inrBalance.update({
-    where: { userId },
-    data: {
-      balance: {
-        increment: amount,
-      },
-    },
-  })
-}
-
 export const createSymbol = async (symbolId: string) => {
   // Assuming symbol format: ASSET_QUOTE_DATE_MONTH_YEAR_HOUR_MIN
   const parts = symbolId.split('_')
