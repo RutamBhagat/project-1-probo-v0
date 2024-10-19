@@ -13,7 +13,7 @@ test('a user is added successfully', async () => {
     .expect('Content-Type', /json/)
     .expect(201)
 
-  expect(response.body.id).toBeDefined()
+  expect(response.body.message).toBeDefined()
 })
 
 test('a user with the same userId is rejected', () => {
