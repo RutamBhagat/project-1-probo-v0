@@ -63,12 +63,3 @@ export const getInrBalances = async (req: Request, res: Response) => {
     return res.status(500).json({ error })
   }
 }
-
-export const resetData = async (req: Request, res: Response) => {
-  try {
-    await service.resetDatabase()
-    return res.status(200).json({ message: 'Database reset successful' })
-  } catch (error) {
-    return res.status(500).json({ error })
-  }
-}

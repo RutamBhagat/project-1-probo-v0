@@ -1,8 +1,8 @@
-import { handleClearDatabase } from '@/controllers/reset-controllers'
+import { handleResetData } from '@/controllers/reset-controllers'
 import { Router } from 'express'
 
 const router = Router()
 
-router.post('/', handleClearDatabase)
+router.post('/', handleResetData)
 
 export default router

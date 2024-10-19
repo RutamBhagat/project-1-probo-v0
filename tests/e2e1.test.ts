@@ -16,13 +16,13 @@ describe('E-to-E-1', () => {
     expect(response.status).toBe(201)
     expect(response.body.message).toBe('User user5 created')
 
-    // // Step 2: Add balance to user5
-    // response = await request(app).post('/api/onramp/inr').send({
-    //   userId: 'user5',
-    //   amount: 50000,
-    // })
-    // expect(response.status).toBe(200)
-    // expect(response.body.message).toBe('Onramped user5 with amount 50000')
+    // Step 2: Add balance to user5
+    response = await request(app).post('/api/onramp/inr').send({
+      userId: 'user5',
+      amount: 50000,
+    })
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe('Onramped user5 with amount 50000')
 
     // // Step 3: Create a new symbol
     // response = await request(app).post(

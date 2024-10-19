@@ -1,14 +1,11 @@
-import { clearDatabase } from '@/services/reset-services'
+import { resetDatabase } from '@/services/reset-services'
 import { Request, Response } from 'express'
 
-export const handleClearDatabase = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const handleResetData = async (req: Request, res: Response) => {
   try {
-    await clearDatabase()
-    res.status(200).json({ message: 'Database cleared successfully' })
+    await resetDatabase()
+    return res.status(200).json({ message: 'Database reset successful' })
   } catch (error) {
-    res.status(500).json({ error: 'Failed to clear database' })
+    return res.status(500).json({ error })
   }
 }
