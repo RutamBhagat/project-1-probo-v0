@@ -46,7 +46,6 @@ npx prisma migrate dev --name init
 
 When `npx prisma migrate dev` is executed against a newly created database, seeding is also triggered. The seed file in [`prisma/seed.ts`](./prisma/seed.ts) will be executed and your database will be populated with the sample data.
 
-
 ### 2. Start the REST API server
 
 Rename the `.env.example` to `.env` and execute this command to start the server:
@@ -81,7 +80,6 @@ You can access the REST API of the server using the following endpoints:
   - Body:
     - `email: String` (required): The email address of the user
     - `name: String` (optional): The name of the user
-
 
 ## Switch to another database (e.g. PostgreSQL, MySQL, SQL Server, MongoDB)
 
@@ -162,3 +160,32 @@ datasource db {
 - Create issues and ask questions on [GitHub](https://github.com/prisma/prisma/)
 
 # project-1-probo-v0
+
+# Testing
+
+```
+for windows users -
+1. install the cross-env package  (npm i cross-env)
+2. install supertest library (npm i supertest)
+3. install jest (npm i jest)
+4. "scripts": {
+    "test": "cross-env NODE_OPTIONS=\'$NODE_OPTIONS --experimental-vm-modules\' npx jest"
+  }
+  add the script above in your package.json
+5. copy the test file inside your root folder
+6. fix the path of the imports in the test file if needed (make sure you export default your app from your main file)
+7. run "npm run test"
+
+
+-------------------------------------------------------------------------------------------
+for linux/mac users -
+1. install supertest library (npm i supertest)
+2. install jest (npm i jest)
+3. "scripts": {
+    "test": "NODE_OPTIONS=\'$NODE_OPTIONS --experimental-vm-modules\' npx jest"
+  }
+  add the script above in your package.json
+4. copy the test file inside your root folder
+5. fix the path of the imports in the test file if needed (make sure you export default your app from your main file)
+6. run "npm run test"
+```
