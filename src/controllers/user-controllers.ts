@@ -20,7 +20,7 @@ export const handleCreateUser = async (
   const { userId } = req.params
   try {
     const result = await createUser(userId)
-    res.json(result)
+    res.status(201).json({ message: `User ${userId} created` })
   } catch (e) {
     res.status(409).json({
       error: 'User already exists!',

@@ -11,7 +11,7 @@ test('a user is added successfully', async () => {
     .send()
     .set('Accept', 'application/json')
     .expect('Content-Type', /json/)
-    .expect(200)
+    .expect(201)
 
   expect(response.body.id).toBeDefined()
 })
