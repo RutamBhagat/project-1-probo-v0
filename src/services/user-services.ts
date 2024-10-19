@@ -8,7 +8,7 @@ export async function getAllUsers() {
 export async function createUser(userId: string) {
   const result = await prisma.user.create({
     data: {
-      userId,
+      id: userId,
     },
   })
   return result

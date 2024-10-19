@@ -3,11 +3,139 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DB_URL")
 }
 
 model User {
-  id     Int    @id @default(autoincrement())
-  userId String @unique
+  id              String           @id
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at")
+  inrBalance      InrBalance?
+  stockBalances   StockBalance[]
+  orders          Order[]
+  buyerTrades     Trade[]          @relation("BuyerTrades")
+  sellerTrades    Trade[]          @relation("SellerTrades")
+  inrTransactions InrTransaction[]
+  tokenMints      TokenMint[]
+
+  @@map("users")
+}
+
+model InrBalance {
+  id            Int      @id @default(autoincrement())
+  userId        String   @unique @map("user_id")
+  balance       BigInt   @default(0)
+  lockedBalance BigInt   @default(0) @map("locked_balance")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@map("inr_balances")
+}
+
+model Symbol {
+  id            String         @id
+  expiryDate    DateTime       @map("expiry_date")
+  baseAsset     String         @map("base_asset")
+  quoteAsset    String         @map("quote_asset")
+  status        String         @default("active")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
+  stockBalances StockBalance[]
+  orders        Order[]
+  trades        Trade[]
+  tokenMints    TokenMint[]
+
+  @@map("symbols")
+}
+
+model StockBalance {
+  id             Int      @id @default(autoincrement())
+  userId         String   @map("user_id")
+  symbolId       String   @map("symbol_id")
+  tokenType      String   @map("token_type")
+  quantity       BigInt   @default(0)
+  lockedQuantity BigInt   @default(0) @map("locked_quantity")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+  user           User     @relation(fields: [userId], references: [id])
+  symbol         Symbol   @relation(fields: [symbolId], references: [id])
+
+  @@unique([userId, symbolId, tokenType])
+  @@map("stock_balances")
+}
+
+model Order {
+  id                Int      @id @default(autoincrement())
+  userId            String   @map("user_id")
+  symbolId          String   @map("symbol_id")
+  orderType         String   @map("order_type")
+  tokenType         String   @map("token_type")
+  quantity          BigInt
+  remainingQuantity BigInt   @map("remaining_quantity")
+  price             BigInt
+  status            String
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+  user              User     @relation(fields: [userId], references: [id])
+  symbol            Symbol   @relation(fields: [symbolId], references: [id])
+  buyerTrades       Trade[]  @relation("BuyerOrders")
+  sellerTrades      Trade[]  @relation("SellerOrders")
+
+  @@index([symbolId, tokenType, status, price])
+  @@index([userId])
+  @@map("orders")
+}
+
+model Trade {
+  id            Int      @id @default(autoincrement())
+  symbolId      String   @map("symbol_id")
+  tokenType     String   @map("token_type")
+  buyerId       String   @map("buyer_id")
+  sellerId      String   @map("seller_id")
+  buyerOrderId  Int      @map("buyer_order_id")
+  sellerOrderId Int      @map("seller_order_id")
+  quantity      BigInt
+  price         BigInt
+  createdAt     DateTime @default(now()) @map("created_at")
+  symbol        Symbol   @relation(fields: [symbolId], references: [id])
+  buyer         User     @relation("BuyerTrades", fields: [buyerId], references: [id])
+  seller        User     @relation("SellerTrades", fields: [sellerId], references: [id])
+  buyerOrder    Order    @relation("BuyerOrders", fields: [buyerOrderId], references: [id])
+  sellerOrder   Order    @relation("SellerOrders", fields: [sellerOrderId], references: [id])
+
+  @@index([symbolId, tokenType])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([buyerOrderId, sellerOrderId])
+  @@map("trades")
+}
+
+model InrTransaction {
+  id              Int      @id @default(autoincrement())
+  userId          String   @map("user_id")
+  transactionType String   @map("transaction_type")
+  amount          BigInt
+  referenceId     String?  @map("reference_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([transactionType])
+  @@map("inr_transactions")
+}
+
+model TokenMint {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id")
+  symbolId  String   @map("symbol_id")
+  quantity  BigInt
+  price     BigInt
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id])
+  symbol    Symbol   @relation(fields: [symbolId], references: [id])
+
+  @@index([userId, symbolId])
+  @@map("token_mints")
 }
