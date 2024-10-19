@@ -7,7 +7,7 @@ afterAll(async () => {
 
 test('a user is added successfully', async () => {
   const response = await request(app)
-    .post('/api/user/user_1')
+    .post('/api/user/create/user_1')
     .send()
     .set('Accept', 'application/json')
     .expect('Content-Type', /json/)
@@ -16,9 +16,9 @@ test('a user is added successfully', async () => {
   expect(response.body.id).toBeDefined()
 })
 
-test('a user with the same email is rejected', () => {
+test('a user with the same userId is rejected', () => {
   return request(app)
-    .post('/api/user/user_1')
+    .post('/api/user/create/user_1')
     .send()
     .set('Accept', 'application/json')
     .expect('Content-Type', /json/)
