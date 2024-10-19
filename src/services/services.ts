@@ -3,24 +3,6 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export const createSymbol = async (symbolId: string) => {
-  // Assuming symbol format: ASSET_QUOTE_DATE_MONTH_YEAR_HOUR_MIN
-  const parts = symbolId.split('_')
-  // Default expiry date set to 1 year from now for testing purposes
-  const expiryDate = new Date()
-  expiryDate.setFullYear(expiryDate.getFullYear() + 1)
-
-  await prisma.symbol.create({
-    data: {
-      id: symbolId,
-      baseAsset: parts[0], // For test assuming first part is base asset
-      quoteAsset: parts[1], // For test assuming second part is quote asset
-      expiryDate,
-      status: 'active',
-    },
-  })
-}
-
 export const mintTokens = async (
   userId: string,
   symbolId: string,

@@ -2,16 +2,6 @@
 import { Request, Response } from 'express'
 import * as service from '../services/services'
 
-export const createSymbol = async (req: Request, res: Response) => {
-  try {
-    const symbolId = req.params.symbolId
-    await service.createSymbol(symbolId)
-    return res.status(201).json({ message: `Symbol ${symbolId} created` })
-  } catch (error) {
-    return res.status(500).json({ error })
-  }
-}
-
 export const mintTokens = async (req: Request, res: Response) => {
   try {
     const { userId, stockSymbol, quantity, price } = req.body

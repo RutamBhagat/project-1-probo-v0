@@ -1,4 +1,4 @@
-import { handleMintTokens } from '@/controllers/onramp-controllers'
+import { handleMintTokens } from '@/controllers/trade-controllers'
 import { Router } from 'express'
 
 const router = Router()
