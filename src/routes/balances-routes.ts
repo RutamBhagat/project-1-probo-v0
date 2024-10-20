@@ -20,7 +20,7 @@ export type BalancesApiSpec = Tspec.DefineApiSpec<{
         handler: typeof handleGetInrBalances
         responses: {
           200: InrBalancesResponse
-          500: { error: string }
+          500: { message: string }
         }
       }
     }
