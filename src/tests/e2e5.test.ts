@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { app, prisma } from '../src/app'
+import { app, prisma } from '@/app'
 
 describe('E-to-E-1', () => {
   beforeAll(async () => {

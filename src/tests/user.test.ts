@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { app, prisma } from '../src/app'
+import { app, prisma } from '@/app'
 
 afterAll(async () => {
   await prisma.$disconnect()
