@@ -85,15 +85,15 @@ describe('E-to-E-1', () => {
     })
 
     // Insufficient Stock Balance for User1 when placing a sell order
-    // response = await request(app).post('/api/order/sell').send({
-    //   userId: 'user1',
-    //   stockSymbol: 'ETH_USD_15_Oct_2024_12_00',
-    //   quantity: 300,
-    //   price: 1500,
-    //   stockType: 'yes',
-    // })
-    // expect(response.status).toBe(400)
-    // expect(response.body.message).toBe('Insufficient stock balance')
+    response = await request(app).post('/api/order/sell').send({
+      userId: 'user1',
+      stockSymbol: 'ETH_USD_15_Oct_2024_12_00',
+      quantity: 300,
+      price: 1500,
+      stockType: 'yes',
+    })
+    expect(response.status).toBe(400)
+    expect(response.body.message).toBe('Insufficient stock balance')
 
     // // Check order book after placing multiple sell orders
     // response = await request(app).get('/api/orderbook')

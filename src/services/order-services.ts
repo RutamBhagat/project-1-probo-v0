@@ -1,4 +1,75 @@
 import { prisma } from '@/app'
+import type { Order, Symbol } from '@prisma/client'
+
+// Define explicit types for the order book structure
+type UserId = string
+type SymbolId = string
+type TokenType = string
+type PriceLevel = {
+  total: bigint
+  orders: Record<UserId, bigint>
+}
+
+type OrderBookPriceMap = Record<string, PriceLevel>
+type OrderBookTokenTypeMap = Record<TokenType, OrderBookPriceMap>
+type OrderBookStructure = Record<SymbolId, OrderBookTokenTypeMap>
+
+// Define the type for the order with included symbol
+type OrderWithSymbol = Order & {
+  symbol: Symbol
+}
+
+export const getOrderBook = async (): Promise<OrderBookStructure> => {
+  const orders = (await prisma.order.findMany({
+    where: {
+      status: 'OPEN',
+    },
+    include: {
+      symbol: true,
+    },
+  })) as OrderWithSymbol[]
+
+  // Initialize empty order book with proper typing
+  const orderBook: OrderBookStructure = {}
+
+  for (const order of orders) {
+    const { symbolId, tokenType, price, userId, remainingQuantity } = order
+
+    // Safely initialize and access symbol level
+    orderBook[symbolId] = orderBook[symbolId] || {}
+    const symbolBook = orderBook[symbolId]
+
+    // Safely initialize and access token type level
+    symbolBook[tokenType] = symbolBook[tokenType] || {}
+    const tokenBook = symbolBook[tokenType]
+
+    // Safely initialize and access price level
+    const priceStr = price.toString()
+    tokenBook[priceStr] = tokenBook[priceStr] || {
+      total: BigInt(0),
+      orders: {},
+    }
+    const priceLevel = tokenBook[priceStr]
+
+    // Safely update total
+    priceLevel.total = priceLevel.total + remainingQuantity
+
+    // Safely initialize and update user orders
+    priceLevel.orders[userId] =
+      (priceLevel.orders[userId] || BigInt(0)) + remainingQuantity
+  }
+
+  return orderBook
+}
+
+// Helper function to safely serialize the order book for JSON response
+export const serializeOrderBook = (orderBook: OrderBookStructure): unknown => {
+  return JSON.parse(
+    JSON.stringify(orderBook, (_, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    )
+  )
+}
 
 export const createSellOrder = async (
   userId: string,
@@ -7,6 +78,21 @@ export const createSellOrder = async (
   price: bigint,
   tokenType: string
 ) => {
+  // First check if user has enough balance
+  const stockBalance = await prisma.stockBalance.findUnique({
+    where: {
+      userId_symbolId_tokenType: {
+        userId,
+        symbolId,
+        tokenType,
+      },
+    },
+  })
+
+  if (!stockBalance || stockBalance.quantity < quantity) {
+    throw new Error('Insufficient stock balance')
+  }
+
   // Lock the tokens
   await prisma.stockBalance.update({
     where: {
@@ -200,4 +286,64 @@ export async function createBuyOrder(
       throw new Error('No matching sell order found')
     }
   })
+}
+
+export const cancelOrder = async (
+  userId: string,
+  symbolId: string,
+  quantity: bigint,
+  price: bigint,
+  tokenType: string,
+  orderType: 'BUY' | 'SELL'
+) => {
+  // Find the matching order
+  const order = await prisma.order.findFirst({
+    where: {
+      userId,
+      symbolId,
+      tokenType,
+      orderType,
+      price,
+      status: 'OPEN',
+      remainingQuantity: quantity,
+    },
+  })
+
+  if (!order) {
+    throw new Error('Order not found')
+  }
+
+  // Update order status
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { status: 'CANCELLED' },
+  })
+
+  // Return locked assets
+  if (orderType === 'SELL') {
+    // Return locked tokens
+    await prisma.stockBalance.update({
+      where: {
+        userId_symbolId_tokenType: {
+          userId,
+          symbolId,
+          tokenType,
+        },
+      },
+      data: {
+        quantity: { increment: quantity },
+        lockedQuantity: { decrement: quantity },
+      },
+    })
+  } else {
+    // Return locked INR
+    const lockedAmount = quantity * price
+    await prisma.inrBalance.update({
+      where: { userId },
+      data: {
+        balance: { increment: lockedAmount },
+        lockedBalance: { decrement: lockedAmount },
+      },
+    })
+  }
 }
