@@ -106,18 +106,38 @@ export async function createBuyOrder(
         },
       })
 
+      // Update seller's stock balance
+      await prisma.stockBalance.update({
+        where: {
+          userId_symbolId_tokenType: {
+            userId: sellOrder.userId,
+            symbolId,
+            tokenType,
+          },
+        },
+        data: { lockedQuantity: { decrement: tradeQuantity } },
+      })
+
       remainingBuyQuantity -= tradeQuantity
       matchedPrice = sellOrder.price
     }
 
-    // Unlock funds for unmatched quantity
-    if (remainingBuyQuantity > BigInt(0)) {
-      const unmatchedCost = remainingBuyQuantity * price
+    // Unlock funds for matched quantity if there was a match
+    if (quantity > remainingBuyQuantity && matchedPrice !== null) {
+      const matchedQuantity = quantity - remainingBuyQuantity
+      const matchedCost = matchedQuantity * matchedPrice
+      await prisma.inrBalance.update({
+        where: { userId },
+        data: { lockedBalance: { decrement: matchedCost } },
+      })
+    } else if (matchedPrice === null) {
+      // If there was no match at all, unlock all locked funds
+      const totalCost = quantity * price
       await prisma.inrBalance.update({
         where: { userId },
         data: {
-          lockedBalance: { decrement: unmatchedCost },
-          balance: { increment: unmatchedCost },
+          lockedBalance: { decrement: totalCost },
+          balance: { increment: totalCost },
         },
       })
     }

@@ -26,11 +26,10 @@ export const handleBuyOrder = async (
   try {
     const { userId, stockSymbol, quantity, price, stockType } = req.body
 
-    // Input validation (especially for BigInt types)
+    // Input validation
     if (!userId || !stockSymbol || !quantity || !price || !stockType) {
       return res.status(400).json({ message: 'Missing required fields' })
     }
-
     if (isNaN(Number(quantity)) || isNaN(Number(price))) {
       return res
         .status(400)
@@ -47,7 +46,7 @@ export const handleBuyOrder = async (
     )
 
     // Handling response for full or partial match
-    if (matchedPrice) {
+    if (matchedPrice !== null) {
       if (remainingQuantity > BigInt(0)) {
         return res.status(200).json({
           message: `Buy order partially matched, ${remainingQuantity.toString()} remaining`,
@@ -64,7 +63,8 @@ export const handleBuyOrder = async (
 
     // If no match found
     return res.status(200).json({
-      message: 'Buy order placed, but no match found',
+      message: 'Buy order placed and pending',
+      remainingQuantity: quantity,
     })
   } catch (error) {
     const errorMessage =
@@ -79,15 +79,26 @@ export const handleSellOrder = async (
 ) => {
   try {
     const { userId, stockSymbol, quantity, price, stockType } = req.body
+
+    // Input validation
+    if (!userId || !stockSymbol || !quantity || !price || !stockType) {
+      return res.status(400).json({ message: 'Missing required fields' })
+    }
+    if (isNaN(Number(quantity)) || isNaN(Number(price))) {
+      return res
+        .status(400)
+        .json({ message: 'Quantity and Price must be valid numbers' })
+    }
+
     await createSellOrder(
       userId,
       stockSymbol,
       BigInt(quantity),
       BigInt(price),
-      stockType
+      stockType.toLowerCase()
     )
     return res.status(200).json({
-      message: `Sell order placed for ${quantity} '${stockType}' options at price ${price}.`,
+      message: `Sell order placed for ${quantity} '${stockType}' tokens at price ${price}.`,
     })
   } catch (error) {
     const errorMessage =
@@ -108,15 +119,31 @@ export const handleCancelOrder = async (
     const { userId, stockSymbol, quantity, price, stockType, orderType } =
       req.body
 
+    // Input validation
+    if (
+      !userId ||
+      !stockSymbol ||
+      !quantity ||
+      !price ||
+      !stockType ||
+      !orderType
+    ) {
+      return res.status(400).json({ message: 'Missing required fields' })
+    }
+    if (isNaN(Number(quantity)) || isNaN(Number(price))) {
+      return res
+        .status(400)
+        .json({ message: 'Quantity and Price must be valid numbers' })
+    }
+
     await cancelOrder(
       userId,
       stockSymbol,
       BigInt(quantity),
       BigInt(price),
-      stockType,
+      stockType.toLowerCase(),
       orderType
     )
-
     return res.status(200).json({
       message: `${orderType} order canceled`,
     })
