@@ -1,7 +1,6 @@
 import { prisma } from '@/app'
 
 export const resetDatabase = async () => {
-  // Delete all records in reverse order of dependencies
   await prisma.trade.deleteMany()
   await prisma.order.deleteMany()
   await prisma.stockBalance.deleteMany()
