@@ -1,5 +1,6 @@
 import request from 'supertest'
 import { app, prisma } from '@/app'
+import { expect, test } from 'vitest'
 
 afterAll(async () => {
   await prisma.$disconnect()

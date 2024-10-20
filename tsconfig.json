@@ -1,22 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "Node",
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "dist",
-    "baseUrl": ".",
+    "target": "es2022",
+    /* If your code doesn't run in the DOM: */
+    "lib": ["es2022"],
+    "moduleDetection": "force",
+    "module": "ESNext",
+    /* If NOT transpiling with TypeScript: */
+    "moduleResolution": "Bundler",
+    /* Aliases */
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "resolveJsonModule": true,
     "allowJs": true,
-    "sourceMap": true,
-    "lib": ["ES2022", "DOM"] // Make sure ES2022 is in the lib array
-  },
-  "include": ["src/**/*", "src/tests"],
-  "exclude": ["node_modules", "dist"]
+    /* Strictness */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    /* Base Options: */
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
+  }
 }

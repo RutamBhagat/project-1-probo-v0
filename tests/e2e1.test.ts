@@ -1,5 +1,6 @@
 import request from 'supertest'
 import { app, prisma } from '@/app'
+import { beforeAll, afterAll, describe, expect, it } from 'vitest'
 
 describe('E-to-E-1', () => {
   beforeAll(async () => {
