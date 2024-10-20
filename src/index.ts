@@ -1,6 +1,11 @@
 import consola from 'consola'
 import { app } from '@/app'
 
-app.listen(3000, () =>
-  consola.info(`🚀 Server ready at: http://localhost:3000`)
-)
+const port =
+  process.env.NODE_ENV === 'test'
+    ? process.env.TEST_PORT || 4000
+    : process.env.PORT || 3000
+
+app.listen(port, () => {
+  consola.info(`🚀 Server ready at: http://localhost:${port}`)
+})

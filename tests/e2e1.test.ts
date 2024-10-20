@@ -58,28 +58,28 @@ describe('E-to-E-1', () => {
       "Sell order placed for 10 'no' options at price 1000."
     )
 
-    // // Step 6: Create User6 and buy the 'no' tokens from the order book
-    // response = await request(app).post('/api/user/create/user6')
-    // expect(response.status).toBe(201)
-    // expect(response.body.message).toBe('User user6 created')
+    // Step 6: Create User6 and buy the 'no' tokens from the order book
+    response = await request(app).post('/api/user/create/user6')
+    expect(response.status).toBe(201)
+    expect(response.body.message).toBe('User user6 created')
 
-    // // Add balance to user6
-    // response = await request(app).post('/api/onramp/inr').send({
-    //   userId: 'user6',
-    //   amount: 20000,
-    // })
-    // expect(response.status).toBe(200)
-    // expect(response.body.message).toBe('Onramped user6 with amount 20000')
+    // Add balance to user6
+    response = await request(app).post('/api/onramp/inr').send({
+      userId: 'user6',
+      amount: 20000,
+    })
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe('Onramped user6 with amount 20000')
 
-    // response = await request(app).post('/api/order/buy').send({
-    //   userId: 'user6',
-    //   stockSymbol: 'AAPL_USD_25_Oct_2024_14_00',
-    //   quantity: 10,
-    //   price: 1000,
-    //   stockType: 'no',
-    // })
-    // expect(response.status).toBe(200)
-    // expect(response.body.message).toBe('Buy order placed and trade executed')
+    response = await request(app).post('/api/order/buy').send({
+      userId: 'user6',
+      stockSymbol: 'AAPL_USD_25_Oct_2024_14_00',
+      quantity: 10,
+      price: 1000,
+      stockType: 'no',
+    })
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe('Buy order placed and trade executed')
 
     // // Fetch balances after the trade
     // response = await request(app).get('/api/balances/inr')
