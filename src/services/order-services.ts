@@ -6,14 +6,14 @@ export async function createBuyOrder(
   quantity: bigint,
   price: bigint,
   tokenType: string
-): Promise<bigint | null> {
-  // Return matched price or null
+): Promise<{ matchedPrice: bigint | null; remainingQuantity: bigint }> {
   return await prisma.$transaction(async (prisma) => {
     const totalCost = quantity * price
+
+    // Ensure buyer has sufficient balance
     const buyerBalance = await prisma.inrBalance.findUnique({
       where: { userId },
     })
-
     if (!buyerBalance || buyerBalance.balance < totalCost) {
       throw new Error('Insufficient INR balance')
     }
@@ -44,7 +44,7 @@ export async function createBuyOrder(
     let remainingBuyQuantity = quantity
     let matchedPrice: bigint | null = null
 
-    // Find and match sell orders, sorted by price (lowest first)
+    // Match against available sell orders
     const matchingSellOrders = await prisma.order.findMany({
       where: {
         symbolId,
@@ -52,25 +52,23 @@ export async function createBuyOrder(
         orderType: 'SELL',
         status: 'OPEN',
         price: {
-          lte: price, // Only match sell orders with price <= buy price
+          lte: price, // Match sell orders with price <= buy price
         },
       },
-      orderBy: [{ price: 'asc' }, { createdAt: 'asc' }], // Prioritize by price and then time
+      orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
     })
 
     for (const sellOrder of matchingSellOrders) {
-      if (remainingBuyQuantity === BigInt(0)) {
-        break // Stop if buy order is fully matched
-      }
+      if (remainingBuyQuantity === BigInt(0)) break
 
       const tradeQuantity =
         sellOrder.remainingQuantity < remainingBuyQuantity
           ? sellOrder.remainingQuantity
-          : remainingBuyQuantity // Match the smaller quantity
+          : remainingBuyQuantity
 
       const tradeValue = tradeQuantity * sellOrder.price
 
-      // Create the trade
+      // Create trade record
       await prisma.trade.create({
         data: {
           symbolId,
@@ -84,51 +82,19 @@ export async function createBuyOrder(
         },
       })
 
-      // Update seller's locked tokens and balance
-      await prisma.stockBalance.update({
-        where: {
-          userId_symbolId_tokenType: {
-            userId: sellOrder.userId,
-            symbolId,
-            tokenType,
-          },
-        },
-        data: {
-          lockedQuantity: { decrement: tradeQuantity },
-        },
-      })
-
-      await prisma.inrBalance.update({
-        where: { userId: sellOrder.userId },
-        data: {
-          balance: { increment: tradeValue },
-        },
-      })
-
-      // Update buyer's token balance
+      // Update buyer's and seller's balances
       await prisma.stockBalance.upsert({
-        where: {
-          userId_symbolId_tokenType: {
-            userId,
-            symbolId,
-            tokenType,
-          },
-        },
+        where: { userId_symbolId_tokenType: { userId, symbolId, tokenType } },
         update: { quantity: { increment: tradeQuantity } },
         create: { userId, symbolId, tokenType, quantity: tradeQuantity },
       })
 
-      // Refund excess if needed (buyer paid a higher price but matched a lower price)
-      const refundAmount = tradeQuantity * (price - sellOrder.price)
       await prisma.inrBalance.update({
-        where: { userId },
-        data: {
-          lockedBalance: { decrement: tradeValue + refundAmount },
-          balance: { increment: refundAmount },
-        },
+        where: { userId: sellOrder.userId },
+        data: { balance: { increment: tradeValue } },
       })
 
-      // Update the sell order's remaining quantity and status
+      // Update the sell order
       await prisma.order.update({
         where: { id: sellOrder.id },
         data: {
@@ -140,22 +106,11 @@ export async function createBuyOrder(
         },
       })
 
-      // Update the buy order's remaining quantity and status
       remainingBuyQuantity -= tradeQuantity
-      await prisma.order.update({
-        where: { id: buyOrder.id },
-        data: {
-          remainingQuantity: remainingBuyQuantity,
-          status:
-            remainingBuyQuantity === BigInt(0) ? 'FILLED' : 'PARTIALLY_FILLED',
-        },
-      })
-
-      // Track the last matched price for the response
       matchedPrice = sellOrder.price
     }
 
-    // If there are still unmatched quantities, unlock buyer's funds
+    // Unlock funds for unmatched quantity
     if (remainingBuyQuantity > BigInt(0)) {
       const unmatchedCost = remainingBuyQuantity * price
       await prisma.inrBalance.update({
@@ -167,12 +122,17 @@ export async function createBuyOrder(
       })
     }
 
-    // Return the last matched price or null if no match was found
-    if (matchedPrice !== null) {
-      return matchedPrice
-    } else {
-      throw new Error('No matching sell order found')
-    }
+    // Update buy order status
+    await prisma.order.update({
+      where: { id: buyOrder.id },
+      data: {
+        remainingQuantity: remainingBuyQuantity,
+        status:
+          remainingBuyQuantity === BigInt(0) ? 'FILLED' : 'PARTIALLY_FILLED',
+      },
+    })
+
+    return { matchedPrice, remainingQuantity: remainingBuyQuantity }
   })
 }
 

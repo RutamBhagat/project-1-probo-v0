@@ -15,6 +15,8 @@ type OrderRequestBody = {
 
 type OrderResponse = {
   message: string
+  matchedPrice?: string // optional, included if an order matches
+  remainingQuantity?: string // optional, for partial matches
 }
 
 export const handleBuyOrder = async (
@@ -24,13 +26,19 @@ export const handleBuyOrder = async (
   try {
     const { userId, stockSymbol, quantity, price, stockType } = req.body
 
+    // Input validation (especially for BigInt types)
     if (!userId || !stockSymbol || !quantity || !price || !stockType) {
-      res.status(400).json({ message: 'Missing required fields' })
-      return
+      return res.status(400).json({ message: 'Missing required fields' })
     }
 
-    // Get the best price order from the service and handle the result
-    const matchedPrice = await createBuyOrder(
+    if (isNaN(Number(quantity)) || isNaN(Number(price))) {
+      return res
+        .status(400)
+        .json({ message: 'Quantity and Price must be valid numbers' })
+    }
+
+    // Service call
+    const { matchedPrice, remainingQuantity } = await createBuyOrder(
       userId,
       stockSymbol,
       BigInt(quantity),
@@ -38,19 +46,30 @@ export const handleBuyOrder = async (
       stockType.toLowerCase()
     )
 
+    // Handling response for full or partial match
     if (matchedPrice) {
-      res.status(200).json({
-        message: `Buy order matched at best price ${matchedPrice}`,
-      })
-    } else {
-      res.status(200).json({
-        message: 'Buy order placed, but no match found',
-      })
+      if (remainingQuantity > BigInt(0)) {
+        return res.status(200).json({
+          message: `Buy order partially matched, ${remainingQuantity.toString()} remaining`,
+          matchedPrice: matchedPrice.toString(),
+          remainingQuantity: remainingQuantity.toString(),
+        })
+      } else {
+        return res.status(200).json({
+          message: `Buy order matched at best price ${matchedPrice.toString()}`,
+          matchedPrice: matchedPrice.toString(),
+        })
+      }
     }
+
+    // If no match found
+    return res.status(200).json({
+      message: 'Buy order placed, but no match found',
+    })
   } catch (error) {
     const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
-    res.status(400).json({ message: errorMessage })
+      error instanceof Error ? error.message : 'Unknown error occurred'
+    return res.status(400).json({ message: errorMessage })
   }
 }
 
