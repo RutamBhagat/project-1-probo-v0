@@ -5,6 +5,7 @@ import onrampRouter from '@/routes/onramp-routes'
 import symbolRouter from '@/routes/symbol-routes'
 import tradeRouter from '@/routes/trade-routes'
 import orderRouter from '@/routes/order-routes'
+import balancesRouter from '@/routes/balances-routes'
 
 const router = Router()
 
@@ -14,5 +15,6 @@ router.use('/onramp', onrampRouter)
 router.use('/symbol', symbolRouter)
 router.use('/trade', tradeRouter)
 router.use('/order', orderRouter)
+router.use('/balances', balancesRouter)
 
 export default router

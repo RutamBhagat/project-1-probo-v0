@@ -81,16 +81,16 @@ describe('E-to-E-1', () => {
     expect(response.status).toBe(200)
     expect(response.body.message).toBe('Buy order placed and trade executed')
 
-    // // Fetch balances after the trade
-    // response = await request(app).get('/api/balances/inr')
-    // expect(response.status).toBe(200)
-    // expect(response.body['user6']).toEqual({
-    //   balance: 10000, // 20000 - (10 * 1000)
-    //   locked: 0,
-    // })
-    // expect(response.body['user5']).toEqual({
-    //   balance: 10000,
-    //   locked: 0,
-    // })
+    // Fetch balances after the trade
+    response = await request(app).get('/api/balances/inr')
+    expect(response.status).toBe(200)
+    expect(response.body['user6']).toEqual({
+      balance: 10000, // 20000 - (10 * 1000)
+      locked: 0,
+    })
+    expect(response.body['user5']).toEqual({
+      balance: 10000,
+      locked: 0,
+    })
   })
 })
