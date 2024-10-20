@@ -62,73 +62,73 @@ describe('E-to-E-1', () => {
       no: { quantity: 50, locked: 0 },
     })
 
-    // // Step 5: User3 sells 20 'yes' tokens
-    // response = await request(app).post('/api/order/sell').send({
-    //   userId: 'user3',
-    //   stockSymbol: 'ETH_USD_20_Oct_2024_10_00',
-    //   quantity: 20,
-    //   price: 2000,
-    //   stockType: 'yes',
-    // })
-    // expect(response.status).toBe(200)
-    // expect(response.body.message).toBe(
-    //   "Sell order placed for 20 'yes' options at price 2000."
-    // )
+    // Step 5: User3 sells 20 'yes' tokens
+    response = await request(app).post('/api/order/sell').send({
+      userId: 'user3',
+      stockSymbol: 'ETH_USD_20_Oct_2024_10_00',
+      quantity: 20,
+      price: 2000,
+      stockType: 'yes',
+    })
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe(
+      "Sell order placed for 20 'yes' options at price 2000."
+    )
 
-    // // Fetch STOCK_BALANCES after selling
-    // response = await request(app).get('/api/balances/stock')
-    // expect(response.status).toBe(200)
-    // expect(response.body['user3']['ETH_USD_20_Oct_2024_10_00']['yes']).toEqual({
-    //   quantity: 30,
-    //   locked: 20,
-    // })
+    // Fetch STOCK_BALANCES after selling
+    response = await request(app).get('/api/balances/stock')
+    expect(response.status).toBe(200)
+    expect(response.body['user3']['ETH_USD_20_Oct_2024_10_00']['yes']).toEqual({
+      quantity: 30,
+      locked: 20,
+    })
 
-    // // Step 6: Create User4 and buy the 'yes' tokens from the order book
-    // response = await request(app).post('/api/user/create/user4')
-    // expect(response.status).toBe(201)
-    // expect(response.body.message).toBe('User user4 created')
+    // Step 6: Create User4 and buy the 'yes' tokens from the order book
+    response = await request(app).post('/api/user/create/user4')
+    expect(response.status).toBe(201)
+    expect(response.body.message).toBe('User user4 created')
 
-    // // Add balance to user4
-    // response = await request(app).post('/api/onramp/inr').send({
-    //   userId: 'user4',
-    //   amount: 60000,
-    // })
-    // expect(response.status).toBe(200)
-    // expect(response.body.message).toBe('Onramped user4 with amount 60000')
+    // Add balance to user4
+    response = await request(app).post('/api/onramp/inr').send({
+      userId: 'user4',
+      amount: 60000,
+    })
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe('Onramped user4 with amount 60000')
 
-    // // User4 buys 20 'yes' tokens
-    // response = await request(app).post('/api/order/buy').send({
-    //   userId: 'user4',
-    //   stockSymbol: 'ETH_USD_20_Oct_2024_10_00',
-    //   quantity: 20,
-    //   price: 2000,
-    //   stockType: 'yes',
-    // })
-    // expect(response.status).toBe(200)
-    // expect(response.body.message).toBe('Buy order placed and trade executed')
+    // User4 buys 20 'yes' tokens
+    response = await request(app).post('/api/order/buy').send({
+      userId: 'user4',
+      stockSymbol: 'ETH_USD_20_Oct_2024_10_00',
+      quantity: 20,
+      price: 2000,
+      stockType: 'yes',
+    })
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe('Buy order placed and trade executed')
 
-    // // Fetch balances after the trade
-    // response = await request(app).get('/api/balances/inr')
-    // expect(response.status).toBe(200)
-    // expect(response.body['user4']).toEqual({
-    //   balance: 20000,
-    //   locked: 0,
-    // })
-    // expect(response.body['user3']).toEqual({
-    //   balance: 40000,
-    //   locked: 0,
-    // })
+    // Fetch balances after the trade
+    response = await request(app).get('/api/balances/inr')
+    expect(response.status).toBe(200)
+    expect(response.body['user4']).toEqual({
+      balance: 20000,
+      locked: 0,
+    })
+    expect(response.body['user3']).toEqual({
+      balance: 40000,
+      locked: 0,
+    })
 
-    // // Fetch STOCK_BALANCES after the trade
-    // response = await request(app).get('/api/balances/stock')
-    // expect(response.status).toBe(200)
-    // expect(response.body['user4']['ETH_USD_20_Oct_2024_10_00']['yes']).toEqual({
-    //   quantity: 20,
-    //   locked: 0,
-    // })
-    // expect(response.body['user3']['ETH_USD_20_Oct_2024_10_00']['yes']).toEqual({
-    //   quantity: 30,
-    //   locked: 0,
-    // })
+    // Fetch STOCK_BALANCES after the trade
+    response = await request(app).get('/api/balances/stock')
+    expect(response.status).toBe(200)
+    expect(response.body['user4']['ETH_USD_20_Oct_2024_10_00']['yes']).toEqual({
+      quantity: 20,
+      locked: 0,
+    })
+    expect(response.body['user3']['ETH_USD_20_Oct_2024_10_00']['yes']).toEqual({
+      quantity: 30,
+      locked: 0,
+    })
   })
 })
