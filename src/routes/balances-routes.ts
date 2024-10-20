@@ -1,17 +1,27 @@
 import { handleGetInrBalances } from '@/controllers/balances-controllers'
 import { Router } from 'express'
-import { Tspec } from 'tspec'
+import type { Tspec } from 'tspec'
 
 const router = Router()
 
 router.get('/inr', handleGetInrBalances)
 
+type InrBalancesResponse = {
+  [key: string]: { balance: number; locked: number }
+}
+
 export type BalancesApiSpec = Tspec.DefineApiSpec<{
+  basePath: '/api/balances'
+  tags: ['Balances']
   paths: {
-    '/api/balances/inr': {
+    '/inr': {
       get: {
         summary: 'Get INR balances'
         handler: typeof handleGetInrBalances
+        responses: {
+          200: InrBalancesResponse
+          500: { error: string }
+        }
       }
     }
   }

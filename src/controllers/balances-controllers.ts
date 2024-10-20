@@ -1,15 +1,25 @@
+import type { Request, Response } from 'express'
 import { getAllInrBalances } from '@/services/balances-services'
-import { Request, Response } from 'express'
+import type { InrBalance } from '@prisma/client'
 
-export const handleGetInrBalances = async (req: Request, res: Response) => {
+type InrBalancesResponse = {
+  [key: string]: { balance: number; locked: number }
+}
+
+type ErrorResponse = {
+  message: string
+}
+
+export const handleGetInrBalances = async (
+  req: Request,
+  res: Response<InrBalancesResponse | ErrorResponse>
+) => {
   try {
     const balances = await getAllInrBalances()
 
-    const formattedBalances: {
-      [key: string]: { balance: number; locked: number }
-    } = {}
+    const formattedBalances: InrBalancesResponse = {}
 
-    balances.forEach((balance) => {
+    balances.forEach((balance: InrBalance) => {
       formattedBalances[balance.userId] = {
         balance: Number(balance.balance),
         locked: Number(balance.lockedBalance),
@@ -18,6 +28,8 @@ export const handleGetInrBalances = async (req: Request, res: Response) => {
 
     return res.status(200).json(formattedBalances)
   } catch (error) {
-    return res.status(500).json({ error })
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    return res.status(500).json({ message: errorMessage })
   }
 }
