@@ -6,7 +6,7 @@ const router = Router()
 
 router.post('/', handleResetData)
 
-export type ApiSpec = Tspec.DefineApiSpec<{
+export type ResetApiSpec = Tspec.DefineApiSpec<{
   paths: {
     '/api/reset': {
       post: {

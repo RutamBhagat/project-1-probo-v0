@@ -6,7 +6,7 @@ const router = Router()
 
 router.post('/inr', handleOnrampInr)
 
-export type ApiSpec = Tspec.DefineApiSpec<{
+export type OnrampApiSpec = Tspec.DefineApiSpec<{
   paths: {
     '/api/onramp/inr': {
       post: {

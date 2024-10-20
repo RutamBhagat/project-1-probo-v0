@@ -6,7 +6,7 @@ const router = Router()
 
 router.post('/create/:id', handleCreateSymbol)
 
-export type ApiSpec = Tspec.DefineApiSpec<{
+export type SymbolApiSpec = Tspec.DefineApiSpec<{
   paths: {
     '/api/symbol/create/{id}': {
       post: {

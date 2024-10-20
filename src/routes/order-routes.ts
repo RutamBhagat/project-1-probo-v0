@@ -10,7 +10,7 @@ const router = Router()
 router.post('/sell', handleSellOrder)
 router.post('/buy', handleBuyOrder)
 
-export type ApiSpec = Tspec.DefineApiSpec<{
+export type OrderApiSpec = Tspec.DefineApiSpec<{
   paths: {
     '/api/order/sell': {
       post: {

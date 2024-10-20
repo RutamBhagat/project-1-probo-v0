@@ -6,7 +6,7 @@ const router = Router()
 
 router.get('/inr', handleGetInrBalances)
 
-export type ApiSpec = Tspec.DefineApiSpec<{
+export type BalancesApiSpec = Tspec.DefineApiSpec<{
   paths: {
     '/api/balances/inr': {
       get: {

@@ -10,7 +10,7 @@ const router = Router()
 router.get('/', handleGetAllUsers)
 router.post('/create/:id', handleCreateUser)
 
-export type ApiSpec = Tspec.DefineApiSpec<{
+export type UserApiSpec = Tspec.DefineApiSpec<{
   paths: {
     '/api/user': {
       get: {

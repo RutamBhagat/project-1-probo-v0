@@ -7,8 +7,10 @@ export const prisma = new PrismaClient()
 export const app = express()
 
 app.use(express.json())
+app.use('/api-docs', async () => {
+  await TspecDocsMiddleware()
+})
 app.use('/api', baseRouter)
-app.use('/api-docs', await TspecDocsMiddleware())
 
 app.use('*', (req, res) => {
   res.status(404).json({

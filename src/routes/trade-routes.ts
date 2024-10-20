@@ -6,7 +6,7 @@ const router = Router()
 
 router.post('/mint', handleMintTokens)
 
-export type ApiSpec = Tspec.DefineApiSpec<{
+export type TradeApiSpec = Tspec.DefineApiSpec<{
   paths: {
     '/api/trade/mint': {
       post: {

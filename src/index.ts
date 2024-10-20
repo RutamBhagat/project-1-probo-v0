@@ -8,4 +8,5 @@ const port =
 
 app.listen(port, () => {
   consola.info(`🚀 Server ready at: http://localhost:${port}`)
+  consola.info(`🚀 Swagger docs ready at: http://localhost:${port}/api-docs`)
 })
