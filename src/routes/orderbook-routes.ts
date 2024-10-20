@@ -18,7 +18,7 @@ type OrderBookResponse = Record<
   >
 >
 
-export type OrderApiSpec = Tspec.DefineApiSpec<{
+export type OrderBookApiSpec = Tspec.DefineApiSpec<{
   basePath: '/api/orderbook'
   tags: ['Order']
   paths: {
