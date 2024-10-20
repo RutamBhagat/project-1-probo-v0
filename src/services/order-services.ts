@@ -57,7 +57,7 @@ export async function createBuyOrder(
     })
 
     if (!buyerBalance || buyerBalance.balance < totalCost) {
-      throw new Error('Insufficient balance')
+      throw new Error('Insufficient INR balance')
     }
 
     // Lock buyer's funds

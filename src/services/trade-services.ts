@@ -7,7 +7,7 @@ export const mintTokens = async (
   quantity: bigint,
   price: bigint
 ) => {
-  const totalCost = quantity * price * BigInt(2) // Account for both "yes" and "no" tokens
+  const totalCost = quantity * price
 
   try {
     // Check and update INR balance

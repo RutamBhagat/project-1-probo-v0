@@ -43,7 +43,7 @@ describe('E-to-E-1', () => {
     })
     expect(response.status).toBe(200)
     expect(response.body.message).toBe(
-      "Minted 25 'yes' and 'no' tokens for user user5, remaining balance is 0"
+      "Minted 25 'yes' and 'no' tokens for user user5, remaining balance is 25000"
     )
 
     // Step 5: User5 sells 10 'no' tokens
@@ -90,7 +90,7 @@ describe('E-to-E-1', () => {
       locked: 0,
     })
     expect(response.body['user5']).toEqual({
-      balance: 10000,
+      balance: 35000,
       locked: 0,
     })
   })
