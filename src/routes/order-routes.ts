@@ -2,7 +2,6 @@ import {
   handleBuyOrder,
   handleSellOrder,
   handleCancelOrder,
-  handleGetOrderBook,
 } from '@/controllers/order-controllers'
 import { Router } from 'express'
 import type { Tspec } from 'tspec'
@@ -12,7 +11,6 @@ const router = Router()
 router.post('/sell', handleSellOrder)
 router.post('/buy', handleBuyOrder)
 router.post('/cancel', handleCancelOrder)
-router.get('/orderbook', handleGetOrderBook)
 
 type OrderResponse = {
   message: string
@@ -57,16 +55,6 @@ export type OrderApiSpec = Tspec.DefineApiSpec<{
         responses: {
           200: OrderResponse
           400: OrderResponse
-        }
-      }
-    }
-    '/orderbook': {
-      get: {
-        summary: 'Get the current order book'
-        handler: typeof handleGetOrderBook
-        responses: {
-          200: OrderBookResponse
-          500: OrderResponse
         }
       }
     }
