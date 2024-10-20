@@ -64,7 +64,6 @@ export const handleBuyOrder = async (
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error'
-    console.error('Buy order error:', errorMessage)
     res.status(400).json({ message: errorMessage })
   }
 }

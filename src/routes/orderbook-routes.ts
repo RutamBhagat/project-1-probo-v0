@@ -4,7 +4,7 @@ import type { Tspec } from 'tspec'
 
 const router = Router()
 
-router.get('/orderbook', handleGetOrderBook)
+router.get('/', handleGetOrderBook)
 
 type OrderResponse = {
   message: string
