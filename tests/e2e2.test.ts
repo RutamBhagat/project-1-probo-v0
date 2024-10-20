@@ -54,13 +54,13 @@ describe('E-to-E-1', () => {
       "Minted 50 'yes' and 'no' tokens for user user3, remaining balance is 0"
     )
 
-    // // Fetch STOCK_BALANCES after minting
-    // response = await request(app).get('/api/balances/stock')
-    // expect(response.status).toBe(200)
-    // expect(response.body['user3']['ETH_USD_20_Oct_2024_10_00']).toEqual({
-    //   yes: { quantity: 50, locked: 0 },
-    //   no: { quantity: 50, locked: 0 },
-    // })
+    // Fetch STOCK_BALANCES after minting
+    response = await request(app).get('/api/balances/stock')
+    expect(response.status).toBe(200)
+    expect(response.body['user3']['ETH_USD_20_Oct_2024_10_00']).toEqual({
+      yes: { quantity: 50, locked: 0 },
+      no: { quantity: 50, locked: 0 },
+    })
 
     // // Step 5: User3 sells 20 'yes' tokens
     // response = await request(app).post('/api/order/sell').send({
