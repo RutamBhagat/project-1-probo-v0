@@ -1,7 +1,22 @@
 import { createBuyOrder, createSellOrder } from '@/services/order-services'
-import { Request, Response } from 'express'
+import type { Request, Response } from 'express'
 
-export const handleSellOrder = async (req: Request, res: Response) => {
+type OrderRequestBody = {
+  userId: string
+  stockSymbol: string
+  quantity: string
+  price: string
+  stockType: string
+}
+
+type OrderResponse = {
+  message: string
+}
+
+export const handleSellOrder = async (
+  req: Request<{}, OrderResponse, OrderRequestBody>,
+  res: Response<OrderResponse>
+) => {
   try {
     const { userId, stockSymbol, quantity, price, stockType } = req.body
     await createSellOrder(
@@ -15,19 +30,21 @@ export const handleSellOrder = async (req: Request, res: Response) => {
       message: `Sell order placed for ${quantity} '${stockType}' options at price ${price}.`,
     })
   } catch (error) {
-    return res.status(500).json({ error })
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    return res.status(500).json({ message: errorMessage })
   }
 }
 
 export const handleBuyOrder = async (
-  req: Request,
-  res: Response
+  req: Request<{}, OrderResponse, OrderRequestBody>,
+  res: Response<OrderResponse>
 ): Promise<void> => {
   try {
     const { userId, stockSymbol, quantity, price, stockType } = req.body
 
     if (!userId || !stockSymbol || !quantity || !price || !stockType) {
-      res.status(400).json({ error: 'Missing required fields' })
+      res.status(400).json({ message: 'Missing required fields' })
       return
     }
 
@@ -41,7 +58,9 @@ export const handleBuyOrder = async (
 
     res.status(200).json({ message: 'Buy order placed and trade executed' })
   } catch (error) {
-    console.error('Buy order error:', error)
-    res.status(500).json({ error })
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    console.error('Buy order error:', errorMessage)
+    res.status(500).json({ message: errorMessage })
   }
 }
