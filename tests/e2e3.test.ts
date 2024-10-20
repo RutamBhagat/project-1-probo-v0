@@ -95,21 +95,21 @@ describe('E-to-E-1', () => {
     expect(response.status).toBe(400)
     expect(response.body.message).toBe('Insufficient stock balance')
 
-    // // Check order book after placing multiple sell orders
-    // response = await request(app).get('/api/orderbook')
-    // expect(response.status).toBe(200)
-    // expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
-    //   1400: { total: 100, orders: { user1: 100 } },
-    //   1500: { total: 100, orders: { user1: 100 } },
-    // })
+    // Check order book after placing multiple sell orders
+    response = await request(app).get('/api/orderbook')
+    expect(response.status).toBe(200)
+    expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
+      1400: { total: 100, orders: { user1: 100 } },
+      1500: { total: 100, orders: { user1: 100 } },
+    })
 
-    // // Step 6: Check stock locking after placing sell orders
-    // response = await request(app).get('/api/balances/stock')
-    // expect(response.status).toBe(200)
-    // expect(response.body['user1']['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
-    //   quantity: 0,
-    //   locked: 200,
-    // })
+    // Step 6: Check stock locking after placing sell orders
+    response = await request(app).get('/api/balances/stock')
+    expect(response.status).toBe(200)
+    expect(response.body['user1']['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
+      quantity: 0,
+      locked: 200,
+    })
 
     // // Step 7: User2 places a buy order for 100 tokens, should match the lower price first (1400)
     // response = await request(app).post('/api/order/buy').send({
