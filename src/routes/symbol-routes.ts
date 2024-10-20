@@ -1,17 +1,29 @@
 import { handleCreateSymbol } from '@/controllers/symbol-controllers'
 import { Router } from 'express'
-import { Tspec } from 'tspec'
+import type { Tspec } from 'tspec'
 
 const router = Router()
 
 router.post('/create/:id', handleCreateSymbol)
 
+type SymbolResponse = {
+  message: string
+}
+
 export type SymbolApiSpec = Tspec.DefineApiSpec<{
+  basePath: '/api/symbol'
+  tags: ['Symbol']
   paths: {
-    '/api/symbol/create/{id}': {
+    '/create/{id}': {
       post: {
         summary: 'Create a symbol by id'
         handler: typeof handleCreateSymbol
+        path: { id: string }
+        responses: {
+          201: SymbolResponse
+          400: SymbolResponse
+          500: SymbolResponse
+        }
       }
     }
   }

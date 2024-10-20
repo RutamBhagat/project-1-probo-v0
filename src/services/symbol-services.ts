@@ -1,5 +1,5 @@
 import { prisma } from '@/app'
-import { Symbol } from '@prisma/client'
+import type { Symbol } from '@prisma/client'
 
 export async function createSymbol(
   id: string,

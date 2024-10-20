@@ -1,10 +1,10 @@
 // Function to create a Date object from symbol date parts
 export const createExpiryDate = (parts: string[]): Date | null => {
-  const day = parseInt(parts[2])
-  const month = parts[3]
-  const year = parseInt(parts[4])
-  const hour = parseInt(parts[5])
-  const minute = parseInt(parts[6])
+  const day = parseInt(parts[2]!)
+  const month = parts[3]!
+  const year = parseInt(parts[4]!)
+  const hour = parseInt(parts[5]!)
+  const minute = parseInt(parts[6]!)
 
   // Map month abbreviation to month number (0-11)
   const months: { [key: string]: number } = {
