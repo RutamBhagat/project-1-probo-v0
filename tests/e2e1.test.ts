@@ -45,18 +45,18 @@ describe('E-to-E-1', () => {
       "Minted 25 'yes' and 'no' tokens for user user5, remaining balance is 0"
     )
 
-    // // Step 5: User5 sells 10 'no' tokens
-    // response = await request(app).post('/api/order/sell').send({
-    //   userId: 'user5',
-    //   stockSymbol: 'AAPL_USD_25_Oct_2024_14_00',
-    //   quantity: 10,
-    //   price: 1000,
-    //   stockType: 'no',
-    // })
-    // expect(response.status).toBe(200)
-    // expect(response.body.message).toBe(
-    //   "Sell order placed for 10 'no' options at price 1000."
-    // )
+    // Step 5: User5 sells 10 'no' tokens
+    response = await request(app).post('/api/order/sell').send({
+      userId: 'user5',
+      stockSymbol: 'AAPL_USD_25_Oct_2024_14_00',
+      quantity: 10,
+      price: 1000,
+      stockType: 'no',
+    })
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe(
+      "Sell order placed for 10 'no' options at price 1000."
+    )
 
     // // Step 6: Create User6 and buy the 'no' tokens from the order book
     // response = await request(app).post('/api/user/create/user6')
