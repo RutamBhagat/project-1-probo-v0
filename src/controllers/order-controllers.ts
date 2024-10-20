@@ -49,7 +49,7 @@ export const handleBuyOrder = async (
     if (matchedPrice !== null) {
       if (remainingQuantity > BigInt(0)) {
         return res.status(200).json({
-          message: `Buy order partially matched, ${remainingQuantity.toString()} remaining`,
+          message: `Buy order matched at best price ${matchedPrice.toString()}`,
           matchedPrice: matchedPrice.toString(),
           remainingQuantity: remainingQuantity.toString(),
         })
@@ -63,7 +63,7 @@ export const handleBuyOrder = async (
 
     // If no match found
     return res.status(200).json({
-      message: 'Buy order placed and pending',
+      message: 'Buy order placed, but no match found',
       remainingQuantity: quantity,
     })
   } catch (error) {

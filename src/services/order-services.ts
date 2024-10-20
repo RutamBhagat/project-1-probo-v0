@@ -18,14 +18,7 @@ export async function createBuyOrder(
       throw new Error('Insufficient INR balance')
     }
 
-    // Lock buyer's funds
-    await prisma.inrBalance.update({
-      where: { userId },
-      data: {
-        balance: { decrement: totalCost },
-        lockedBalance: { increment: totalCost },
-      },
-    })
+    let spentAmount = BigInt(0)
 
     // Create buy order
     const buyOrder = await prisma.order.create({
@@ -94,6 +87,8 @@ export async function createBuyOrder(
         data: { balance: { increment: tradeValue } },
       })
 
+      spentAmount += tradeValue
+
       // Update the sell order
       await prisma.order.update({
         where: { id: sellOrder.id },
@@ -122,25 +117,14 @@ export async function createBuyOrder(
       matchedPrice = sellOrder.price
     }
 
-    // Unlock funds for matched quantity if there was a match
-    if (quantity > remainingBuyQuantity && matchedPrice !== null) {
-      const matchedQuantity = quantity - remainingBuyQuantity
-      const matchedCost = matchedQuantity * matchedPrice
-      await prisma.inrBalance.update({
-        where: { userId },
-        data: { lockedBalance: { decrement: matchedCost } },
-      })
-    } else if (matchedPrice === null) {
-      // If there was no match at all, unlock all locked funds
-      const totalCost = quantity * price
-      await prisma.inrBalance.update({
-        where: { userId },
-        data: {
-          lockedBalance: { decrement: totalCost },
-          balance: { increment: totalCost },
-        },
-      })
-    }
+    // Update buyer's balance
+    await prisma.inrBalance.update({
+      where: { userId },
+      data: {
+        balance: { decrement: spentAmount },
+        lockedBalance: { increment: totalCost - spentAmount },
+      },
+    })
 
     // Update buy order status
     await prisma.order.update({
