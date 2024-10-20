@@ -1,11 +1,27 @@
 import { mintTokens } from '@/services/trade-services'
-import { Request, Response } from 'express'
+import type { Request, Response } from 'express'
 import consola from 'consola'
 
+type TradeRequestBody = {
+  userId: string
+  stockSymbol: string
+  quantity: string
+  price: string
+}
+
+type TradeResponse = {
+  message: string
+}
+
+type ErrorResponse = {
+  message: string
+  details?: string
+}
+
 export const handleMintTokens = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+  req: Request<{}, TradeResponse | ErrorResponse, TradeRequestBody>,
+  res: Response<TradeResponse | ErrorResponse>
+) => {
   try {
     const { userId, stockSymbol, quantity, price } = req.body
 
@@ -35,8 +51,8 @@ export const handleMintTokens = async (
 
     // Send detailed error response
     res.status(500).json({
-      error: 'An error occurred while minting tokens',
-      details: error instanceof Error ? error.message : error,
+      message: 'An error occurred while minting tokens',
+      details: error instanceof Error ? error.message : undefined,
     })
   }
 }
