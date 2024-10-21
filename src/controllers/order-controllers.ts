@@ -98,7 +98,7 @@ export const handleSellOrder = async (
       stockType.toLowerCase()
     )
     return res.status(200).json({
-      message: `Sell order placed for ${quantity} '${stockType}' tokens at price ${price}.`,
+      message: `Sell order placed for ${quantity} '${stockType}' options at price ${price}.`,
     })
   } catch (error) {
     const errorMessage =

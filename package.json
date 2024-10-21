@@ -8,7 +8,7 @@
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "bun prisma db seed",
-    "test": "vitest --silent=false --pool=forks"
+    "test": "vitest --pool=forks"
   },
   "prettier": {
     "semi": false,

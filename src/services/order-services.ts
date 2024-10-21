@@ -18,6 +18,15 @@ export async function createBuyOrder(
       throw new Error('Insufficient INR balance')
     }
 
+    // Lock the user's balance
+    await prisma.inrBalance.update({
+      where: { userId },
+      data: {
+        balance: { decrement: totalCost },
+        lockedBalance: { increment: totalCost },
+      },
+    })
+
     let spentAmount = BigInt(0)
 
     // Create buy order
@@ -117,16 +126,30 @@ export async function createBuyOrder(
       matchedPrice = sellOrder.price
     }
 
+    // Log the initial locked balance
+    const initialLockedBalance = await prisma.inrBalance.findUnique({
+      where: { userId },
+    })
+    console.log(
+      `Initial locked balance: ${initialLockedBalance?.lockedBalance.toString()}`
+    )
+
     // Calculate the amount to unlock
     const amountToUnlock = totalCost - spentAmount
     console.log(`Amount to unlock: ${amountToUnlock.toString()}`)
 
-    // Update buyer's balance
+    // Single atomic update to handle both the spent amount and unlocking
     await prisma.inrBalance.update({
       where: { userId },
       data: {
-        balance: { decrement: spentAmount },
-        lockedBalance: { decrement: amountToUnlock }, // Correctly decrement locked balance
+        // Unlock the entire locked amount (totalCost)
+        lockedBalance: {
+          decrement: totalCost,
+        },
+        // Add back the unspent amount to balance
+        balance: {
+          increment: amountToUnlock,
+        },
       },
     })
 
