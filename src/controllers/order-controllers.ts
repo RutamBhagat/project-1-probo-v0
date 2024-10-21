@@ -56,7 +56,7 @@ export const handleBuyOrder = async (
     switch (status) {
       case OrderStatus.FILLED:
         message = matchedPrice
-          ? `Buy order fully matched at best price ${matchedPrice.toString()}`
+          ? `Buy order matched at best price ${matchedPrice.toString()}`
           : 'Buy order fully executed at requested price'
         break
       case OrderStatus.PARTIALLY_FILLED:

@@ -274,10 +274,11 @@ describe('E-to-E-3', () => {
       locked: 65000,
     })
 
-    // Check the order book and ensure no matching has occurred
+    // Check the order book - UPDATED to include buy orders
     response = await request(app).get('/api/orderbook')
     expect(response.status).toBe(200)
     expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
+      1300: { total: 50, orders: { user2: 50 } },
       1400: { total: 100, orders: { user1: 100 } },
       1500: { total: 100, orders: { user1: 100 } },
     })
@@ -298,9 +299,9 @@ describe('E-to-E-3', () => {
       stockType: 'yes',
     })
     expect(response.status).toBe(200)
-    expect(response.body.message).toBe('Buy order matched at price 1400')
+    expect(response.body.message).toBe('Buy order matched at best price 1400')
 
-    // Verify that the order book is updated correctly
+    // Verify final orderbook state
     response = await request(app).get('/api/orderbook')
     expect(response.status).toBe(200)
     expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({

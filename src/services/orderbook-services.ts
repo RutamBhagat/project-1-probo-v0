@@ -1,28 +1,33 @@
-// services/orderBookService.ts
-
 import { prisma } from '@/app'
 import { Logger } from '@/utils/logger'
 import type { Order, Symbol } from '@prisma/client'
 
-// Define explicit types for the order book structure
+// Define stricter types for the order book structure
 type UserId = string
 type SymbolId = string
 type TokenType = string
-type PriceLevel = {
+
+interface PriceLevel {
   total: bigint
   orders: Record<UserId, bigint>
 }
 
-type OrderBookPriceMap = Record<string, PriceLevel>
-type OrderBookTokenTypeMap = Record<TokenType, OrderBookPriceMap>
-type OrderBookStructure = Record<SymbolId, OrderBookTokenTypeMap>
+interface OrderBookPriceMap {
+  [price: string]: PriceLevel
+}
 
-// Define the type for the order with included symbol
+interface OrderBookTokenTypeMap {
+  [tokenType: string]: OrderBookPriceMap
+}
+
+interface OrderBookStructure {
+  [symbolId: string]: OrderBookTokenTypeMap
+}
+
 type OrderWithSymbol = Order & {
   symbol: Symbol
 }
 
-// Initialize logger
 const logger = new Logger('OrderBookService')
 
 export const getOrderBook = async (): Promise<OrderBookStructure> => {
@@ -30,64 +35,77 @@ export const getOrderBook = async (): Promise<OrderBookStructure> => {
 
   const orders = (await prisma.order.findMany({
     where: {
-      status: {
-        in: ['OPEN', 'PARTIALLY_FILLED'],
-      },
+      AND: [
+        {
+          status: {
+            in: ['OPEN', 'PARTIALLY_FILLED'],
+          },
+        },
+        {
+          remainingQuantity: {
+            gt: 0,
+          },
+        },
+      ],
     },
     include: {
       symbol: true,
+    },
+    orderBy: {
+      price: 'asc',
     },
   })) as OrderWithSymbol[]
 
   logger.debug('Orders successfully fetched', { orderCount: orders.length })
 
-  // Initialize empty order book with proper typing
   const orderBook: OrderBookStructure = {}
 
   for (const order of orders) {
     const { symbolId, tokenType, price, userId, remainingQuantity } = order
 
+    if (BigInt(remainingQuantity) <= BigInt(0)) {
+      continue
+    }
+
     logger.debug('Processing order', { symbolId, tokenType, price, userId })
 
-    // Validate and initialize symbol level
+    // Initialize with type assertion
     if (!orderBook[symbolId]) {
       logger.debug('Initialized symbol level', { symbolId })
-      orderBook[symbolId] = {}
+      orderBook[symbolId] = {} as OrderBookTokenTypeMap
     }
-    const symbolBook = orderBook[symbolId]
 
-    // Validate and initialize token type level
-    if (!symbolBook[tokenType]) {
+    if (!orderBook[symbolId][tokenType]) {
       logger.debug('Initialized token type level', { tokenType })
-      symbolBook[tokenType] = {}
+      orderBook[symbolId][tokenType] = {} as OrderBookPriceMap
     }
-    const tokenBook = symbolBook[tokenType]
 
-    // Validate and initialize price level
     const priceStr = price.toString()
+    const tokenBook = orderBook[symbolId][tokenType]
+
     if (!tokenBook[priceStr]) {
       logger.debug('Initialized price level', { price: priceStr })
       tokenBook[priceStr] = {
         total: BigInt(0),
-        orders: {},
+        orders: {} as Record<UserId, bigint>,
       }
     }
-    const priceLevel = tokenBook[priceStr]
 
-    // Safely update total
-    priceLevel.total = priceLevel.total + BigInt(remainingQuantity)
+    // Safe access with non-null assertion after check
+    const priceLevel = tokenBook[priceStr]!
+
+    priceLevel.total += BigInt(remainingQuantity)
     logger.debug('Updated price level total', {
       price: priceStr,
       newTotal: priceLevel.total.toString(),
     })
 
-    // Safely initialize and update user orders
     if (!priceLevel.orders[userId]) {
       logger.debug('Initialized user order', { userId })
       priceLevel.orders[userId] = BigInt(0)
     }
-    priceLevel.orders[userId] =
-      priceLevel.orders[userId] + BigInt(remainingQuantity)
+
+    priceLevel.orders[userId] += BigInt(remainingQuantity)
     logger.debug('Updated user order', {
       userId,
       newOrderQuantity: priceLevel.orders[userId].toString(),
@@ -95,11 +113,9 @@ export const getOrderBook = async (): Promise<OrderBookStructure> => {
   }
 
   logger.debug('Order book successfully generated')
-
   return orderBook
 }
 
-// Helper function to safely serialize the order book for JSON response
 export const serializeOrderBook = (orderBook: OrderBookStructure): unknown => {
   return JSON.parse(
     JSON.stringify(orderBook, (_, value) =>
