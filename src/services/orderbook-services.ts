@@ -75,7 +75,7 @@ export const getOrderBook = async (): Promise<OrderBookStructure> => {
 export const serializeOrderBook = (orderBook: OrderBookStructure): unknown => {
   return JSON.parse(
     JSON.stringify(orderBook, (_, value) =>
-      typeof value === 'bigint' ? value.toString() : value
+      typeof value === 'bigint' ? Number(value) : value
     )
   )
 }
