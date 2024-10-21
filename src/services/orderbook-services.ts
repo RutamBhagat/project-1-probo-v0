@@ -36,27 +36,36 @@ export const getOrderBook = async (): Promise<OrderBookStructure> => {
     const { symbolId, tokenType, price, userId, remainingQuantity } = order
 
     // Safely initialize and access symbol level
-    orderBook[symbolId] = orderBook[symbolId] || {}
+    if (!orderBook[symbolId]) {
+      orderBook[symbolId] = {}
+    }
     const symbolBook = orderBook[symbolId]
 
     // Safely initialize and access token type level
-    symbolBook[tokenType] = symbolBook[tokenType] || {}
+    if (!symbolBook[tokenType]) {
+      symbolBook[tokenType] = {}
+    }
     const tokenBook = symbolBook[tokenType]
 
     // Safely initialize and access price level
     const priceStr = price.toString()
-    tokenBook[priceStr] = tokenBook[priceStr] || {
-      total: BigInt(0),
-      orders: {},
+    if (!tokenBook[priceStr]) {
+      tokenBook[priceStr] = {
+        total: BigInt(0),
+        orders: {},
+      }
     }
     const priceLevel = tokenBook[priceStr]
 
     // Safely update total
-    priceLevel.total = priceLevel.total + remainingQuantity
+    priceLevel.total = priceLevel.total + BigInt(remainingQuantity)
 
     // Safely initialize and update user orders
+    if (!priceLevel.orders[userId]) {
+      priceLevel.orders[userId] = BigInt(0)
+    }
     priceLevel.orders[userId] =
-      (priceLevel.orders[userId] || BigInt(0)) + remainingQuantity
+      priceLevel.orders[userId] + BigInt(remainingQuantity)
   }
 
   return orderBook
