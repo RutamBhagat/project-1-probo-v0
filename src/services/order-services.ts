@@ -174,7 +174,10 @@ export async function createBuyOrder(
       },
     })
 
-    return { matchedPrice, remainingQuantity: remainingBuyQuantity }
+    return {
+      matchedPrice: matchedPrice === price ? null : matchedPrice,
+      remainingQuantity: remainingBuyQuantity,
+    }
   })
 }
 

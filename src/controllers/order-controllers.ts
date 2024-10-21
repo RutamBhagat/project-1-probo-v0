@@ -46,24 +46,28 @@ export const handleBuyOrder = async (
     )
 
     // Handling response for full or partial match
-    if (matchedPrice !== null) {
-      if (remainingQuantity > BigInt(0)) {
-        return res.status(200).json({
-          message: `Buy order matched at best price ${matchedPrice.toString()}`,
-          matchedPrice: matchedPrice.toString(),
-          remainingQuantity: remainingQuantity.toString(),
-        })
-      } else {
-        return res.status(200).json({
-          message: `Buy order matched at best price ${matchedPrice.toString()}`,
-          matchedPrice: matchedPrice.toString(),
-        })
-      }
+
+    // If matched at exact price requested
+    if (matchedPrice === null && remainingQuantity === BigInt(0)) {
+      return res.status(200).json({
+        message: 'Buy order placed and trade executed',
+      })
     }
 
-    // If no match found
+    // If matched at better price
+    if (matchedPrice !== null && remainingQuantity === BigInt(0)) {
+      return res.status(200).json({
+        message: `Buy order matched at best price ${matchedPrice.toString()}`,
+        matchedPrice: matchedPrice.toString(),
+      })
+    }
+
+    // If no match found or partial match
+    const msg = matchedPrice
+      ? 'Buy order partially matched'
+      : 'Buy order placed, but no match found'
     return res.status(200).json({
-      message: 'Buy order placed, but no match found',
+      message: msg,
       remainingQuantity: quantity,
     })
   } catch (error) {
