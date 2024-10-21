@@ -117,14 +117,29 @@ export async function createBuyOrder(
       matchedPrice = sellOrder.price
     }
 
+    // Calculate the amount to unlock
+    const amountToUnlock = totalCost - spentAmount
+    console.log(`Amount to unlock: ${amountToUnlock.toString()}`)
+
     // Update buyer's balance
     await prisma.inrBalance.update({
       where: { userId },
       data: {
         balance: { decrement: spentAmount },
-        lockedBalance: { increment: totalCost - spentAmount },
+        lockedBalance: { decrement: amountToUnlock }, // Correctly decrement locked balance
       },
     })
+
+    // Log the updated balances
+    const updatedBuyerBalance = await prisma.inrBalance.findUnique({
+      where: { userId },
+    })
+    console.log(
+      `Updated buyer balance: ${updatedBuyerBalance?.balance.toString()}`
+    )
+    console.log(
+      `Updated locked balance: ${updatedBuyerBalance?.lockedBalance.toString()}`
+    )
 
     // Update buy order status
     await prisma.order.update({
