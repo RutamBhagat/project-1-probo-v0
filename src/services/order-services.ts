@@ -1,4 +1,19 @@
 import { prisma } from '@/app'
+import { Logger } from '@/utils/logger'
+
+const logger = new Logger('BuyOrderService')
+
+interface TradeResult {
+  matchedPrice: bigint | null
+  remainingQuantity: bigint
+}
+
+interface BalanceUpdate {
+  initialLock: bigint
+  spent: bigint
+  unlocked: bigint
+  remaining: bigint
+}
 
 export async function createBuyOrder(
   userId: string,
@@ -6,19 +21,39 @@ export async function createBuyOrder(
   quantity: bigint,
   price: bigint,
   tokenType: string
-): Promise<{ matchedPrice: bigint | null; remainingQuantity: bigint }> {
+): Promise<TradeResult> {
   return await prisma.$transaction(async (prisma) => {
-    const totalCost = quantity * price
+    const balanceUpdates: BalanceUpdate = {
+      initialLock: BigInt(0),
+      spent: BigInt(0),
+      unlocked: BigInt(0),
+      remaining: BigInt(0),
+    }
 
-    // Ensure buyer has sufficient balance
+    const totalCost = quantity * price
+    balanceUpdates.initialLock = totalCost
+
+    logger.debug('Starting buy order', {
+      userId,
+      quantity: quantity.toString(),
+      price: price.toString(),
+      totalCost: totalCost.toString(),
+    })
+
+    // Check and lock buyer's balance
     const buyerBalance = await prisma.inrBalance.findUnique({
       where: { userId },
     })
+
     if (!buyerBalance || buyerBalance.balance < totalCost) {
+      logger.error('Insufficient balance', {
+        required: totalCost.toString(),
+        available: buyerBalance?.balance.toString() || '0',
+      })
       throw new Error('Insufficient INR balance')
     }
 
-    // Initially lock the full amount
+    // Lock the full amount initially
     await prisma.inrBalance.update({
       where: { userId },
       data: {
@@ -27,10 +62,16 @@ export async function createBuyOrder(
       },
     })
 
+    logger.debug('Initial balance locked', {
+      amount: totalCost.toString(),
+      userId,
+    })
+
     let spentAmount = BigInt(0)
     let remainingBuyQuantity = quantity
     let matchedPrice: bigint | null = null
 
+    // Create the buy order
     const buyOrder = await prisma.order.create({
       data: {
         userId,
@@ -44,7 +85,9 @@ export async function createBuyOrder(
       },
     })
 
-    // Match against available sell orders
+    logger.debug('Buy order created', { orderId: buyOrder.id })
+
+    // Find matching sell orders
     const matchingSellOrders = await prisma.order.findMany({
       where: {
         symbolId,
@@ -58,6 +101,11 @@ export async function createBuyOrder(
       orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
     })
 
+    logger.debug('Found matching sell orders', {
+      count: matchingSellOrders.length,
+    })
+
+    // Process each matching sell order
     for (const sellOrder of matchingSellOrders) {
       if (remainingBuyQuantity === BigInt(0)) break
 
@@ -67,6 +115,13 @@ export async function createBuyOrder(
           : remainingBuyQuantity
 
       const tradeValue = tradeQuantity * sellOrder.price
+
+      logger.debug('Processing trade', {
+        sellOrderId: sellOrder.id,
+        quantity: tradeQuantity.toString(),
+        price: sellOrder.price.toString(),
+        value: tradeValue.toString(),
+      })
 
       // Create trade record
       await prisma.trade.create({
@@ -82,21 +137,34 @@ export async function createBuyOrder(
         },
       })
 
-      // Update buyer's and seller's balances
+      // Update balances
       await prisma.stockBalance.upsert({
-        where: { userId_symbolId_tokenType: { userId, symbolId, tokenType } },
+        where: {
+          userId_symbolId_tokenType: {
+            userId,
+            symbolId,
+            tokenType,
+          },
+        },
         update: { quantity: { increment: tradeQuantity } },
-        create: { userId, symbolId, tokenType, quantity: tradeQuantity },
+        create: {
+          userId,
+          symbolId,
+          tokenType,
+          quantity: tradeQuantity,
+        },
       })
 
+      // Update seller's balance
       await prisma.inrBalance.update({
         where: { userId: sellOrder.userId },
         data: { balance: { increment: tradeValue } },
       })
 
       spentAmount += tradeValue
+      balanceUpdates.spent = spentAmount
 
-      // Update the sell order
+      // Update sell order
       await prisma.order.update({
         where: { id: sellOrder.id },
         data: {
@@ -122,13 +190,29 @@ export async function createBuyOrder(
 
       remainingBuyQuantity -= tradeQuantity
       matchedPrice = sellOrder.price
+
+      logger.debug('Trade completed', {
+        remainingQuantity: remainingBuyQuantity.toString(),
+        spentSoFar: spentAmount.toString(),
+      })
     }
 
     // Calculate final amounts
-    const remainingOrderCost = remainingBuyQuantity * price // Amount to keep locked
-    const unlockAmount = totalCost - (spentAmount + remainingOrderCost)
+    const remainingOrderCost = remainingBuyQuantity * price
+    balanceUpdates.remaining = remainingOrderCost
 
-    // Update the buy order's status
+    // Calculate unlock amount based on price differences
+    const unlockAmount = totalCost - (spentAmount + remainingOrderCost)
+    balanceUpdates.unlocked = unlockAmount
+
+    logger.debug('Final balance calculations', {
+      totalCost: totalCost.toString(),
+      spentAmount: spentAmount.toString(),
+      remainingOrderCost: remainingOrderCost.toString(),
+      unlockAmount: unlockAmount.toString(),
+    })
+
+    // Update buy order status
     await prisma.order.update({
       where: { id: buyOrder.id },
       data: {
@@ -138,13 +222,19 @@ export async function createBuyOrder(
       },
     })
 
-    // Final balance adjustment
+    // Adjust final balances
     await prisma.inrBalance.update({
       where: { userId },
       data: {
-        lockedBalance: { decrement: spentAmount + unlockAmount }, // Reduce lock by spent + excess
-        balance: { increment: unlockAmount }, // Return only excess amount to balance
+        lockedBalance: { decrement: spentAmount + unlockAmount },
+        balance: { increment: unlockAmount },
       },
+    })
+
+    logger.debug('Order completed', {
+      balanceUpdates,
+      finalStatus:
+        remainingBuyQuantity === BigInt(0) ? 'FILLED' : 'PARTIALLY_FILLED',
     })
 
     return {
