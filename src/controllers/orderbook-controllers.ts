@@ -20,15 +20,25 @@ export const handleGetOrderBook = async (
   res: Response<SerializedOrderBook | ErrorResponse>
 ) => {
   try {
+    // Fetch the order book from the service
     const orderBook = await getOrderBook()
-    const serializedOrderBook: SerializedOrderBook = serializeOrderBook(
+
+    // Serialize the order book to convert BigInts to Numbers
+    const serializedOrderBook = serializeOrderBook(
       orderBook
     ) as SerializedOrderBook
 
+    // Return a 200 response with the serialized order book
     return res.status(200).json(serializedOrderBook)
   } catch (error) {
+    // Capture and log the error (optional: using a logger)
+    console.error('Error fetching order book:', error)
+
+    // Ensure the error message is safe to send to clients
     const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
+      error instanceof Error ? error.message : 'An unexpected error occurred.'
+
+    // Return a 500 error response with the error message
     return res.status(500).json({ message: errorMessage })
   }
 }
