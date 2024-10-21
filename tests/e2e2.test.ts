@@ -105,7 +105,7 @@ describe('E-to-E-1', () => {
       stockType: 'yes',
     })
     expect(response.status).toBe(200)
-    expect(response.body.message).toBe('Buy order placed and trade executed')
+    expect(response.body.message).toBe('Buy order placed and fully executed')
 
     // Fetch balances after the trade
     response = await request(app).get('/api/balances/inr')
