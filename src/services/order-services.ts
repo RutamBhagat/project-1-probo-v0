@@ -23,7 +23,6 @@ export async function createBuyOrder(
   price: bigint,
   tokenType: string
 ): Promise<TradeResult> {
-  // Use serializable isolation for strict consistency
   return await prisma.$transaction(
     async (prisma) => {
       const balanceUpdates: BalanceUpdate = {
@@ -206,16 +205,11 @@ export async function createBuyOrder(
       balanceUpdates.priceUnlock = totalPriceUnlock // Total amount unlocked due to price differences
       balanceUpdates.remainingLocked = remainingLocked // Amount still locked for remaining quantity
 
-      // **NEW**: Handle unlocking for unmatched remaining quantity
-      const unmatchedQuantityPriceUnlock =
-        remainingBuyQuantity * (price - matchedPrice!)
-
       logger.debug('Final balance calculations', {
         totalCost: totalCost.toString(),
         spentAmount: spentAmount.toString(),
         priceUnlock: totalPriceUnlock.toString(),
         remainingLocked: remainingLocked.toString(),
-        unmatchedQuantityPriceUnlock: unmatchedQuantityPriceUnlock.toString(),
       })
 
       // Update buy order status
@@ -228,25 +222,23 @@ export async function createBuyOrder(
         },
       })
 
-      // Perform final balance updates
-      const finalBalanceUpdate = await prisma.inrBalance.update({
+      // **Fix**: Ensure that lockedBalance decrement does not include unmatchedQuantityPriceUnlock
+      await prisma.inrBalance.update({
         where: { userId },
         data: {
-          // Unlock the spent amount plus any price difference unlocks
+          // Unlock only the spent amount and total price unlock
           lockedBalance: {
-            decrement:
-              spentAmount + totalPriceUnlock + unmatchedQuantityPriceUnlock,
+            decrement: spentAmount + totalPriceUnlock,
           },
           // Return price difference unlocks to available balance
           balance: {
-            increment: totalPriceUnlock + unmatchedQuantityPriceUnlock,
+            increment: totalPriceUnlock,
           },
         },
       })
 
       logger.debug('Order completed', {
         balanceUpdates,
-        finalBalance: finalBalanceUpdate,
       })
 
       return {

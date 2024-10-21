@@ -168,10 +168,10 @@ describe('E-to-E-3', () => {
     // Check INR balances after partial matching
     response = await request(app).get('/api/balances/inr')
     expect(response.status).toBe(200)
-    expect(response.body['user2']).toEqual({ balance: 285000, locked: 37500 })
-    // User2's balance: 360000 - (50 * 1500) = 285000 INR with 37500 locked for the remaining 25 tokens.
-    expect(response.body['user1']).toEqual({ balance: 350000, locked: 0 })
-    // User1’s balance: 200000 + (100 * 1400) + (50 * 1500) = 350000 INR.
+    expect(response.body['user2']).toEqual({ balance: 247500, locked: 37500 })
+    // User2's balance: 360000 - (50 * 1500) - (25 * 1500) = 247500 INR with 37500 locked for the remaining 25 tokens.
+    expect(response.body['user1']).toEqual({ balance: 415000, locked: 0 })
+    // User1’s balance: 200000 + (100 * 1400) + (50 * 1500) = 415000 INR.
 
     // Check order book after partial matching
     response = await request(app).get('/api/orderbook')
@@ -195,8 +195,8 @@ describe('E-to-E-3', () => {
     // Final INR balance check
     response = await request(app).get('/api/balances/inr')
     expect(response.status).toBe(200)
-    expect(response.body['user1']).toEqual({ balance: 350000, locked: 0 }) // User1's final INR balance
-    expect(response.body['user2']).toEqual({ balance: 285000, locked: 37500 }) // User2's final balance with 37500 locked for the remaining order
+    expect(response.body['user1']).toEqual({ balance: 415000, locked: 0 }) // User1's final INR balance
+    expect(response.body['user2']).toEqual({ balance: 247500, locked: 37500 }) // User2's final balance with 37500 locked for the remaining order
   })
 
   // it('should handle multiple buy orders with price priority matching', async () => {
