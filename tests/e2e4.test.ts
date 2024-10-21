@@ -265,6 +265,7 @@ describe('E-to-E-1', () => {
     response = await request(app).get('/api/orderbook')
     expect(response.status).toBe(200)
     expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
+      1300: { total: 50, orders: { user2: 50 } },
       1400: { total: 100, orders: { user1: 100 } },
       1500: { total: 100, orders: { user1: 100 } },
     })
@@ -285,7 +286,9 @@ describe('E-to-E-1', () => {
       stockType: 'yes',
     })
     expect(response.status).toBe(200)
-    expect(response.body.message).toBe('Sell order matched at price 1300')
+    expect(response.body.message).toBe(
+      `Sell order placed for 50 'yes' options at price 1300.`
+    )
 
     // Verify that the order book is updated correctly the buy order matches immediatly
     response = await request(app).get('/api/orderbook')
