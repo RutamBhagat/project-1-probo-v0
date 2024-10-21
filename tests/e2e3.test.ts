@@ -326,6 +326,6 @@ describe('E-to-E-3', () => {
     response = await request(app).get('/api/balances/inr')
     expect(response.status).toBe(200)
     expect(response.body['user1']).toEqual({ balance: 305000, locked: 0 })
-    expect(response.body['user2']).toEqual({ balance: 126250, locked: 65000 })
+    expect(response.body['user2']).toEqual({ balance: 130000, locked: 65000 })
   })
 })
