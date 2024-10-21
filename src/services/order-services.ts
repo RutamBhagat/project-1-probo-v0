@@ -18,7 +18,7 @@ export async function createBuyOrder(
       throw new Error('Insufficient INR balance')
     }
 
-    // Lock the user's balance
+    // Initially lock the full amount
     await prisma.inrBalance.update({
       where: { userId },
       data: {
@@ -31,7 +31,6 @@ export async function createBuyOrder(
     let remainingBuyQuantity = quantity
     let matchedPrice: bigint | null = null
 
-    // Create buy order
     const buyOrder = await prisma.order.create({
       data: {
         userId,
@@ -53,7 +52,7 @@ export async function createBuyOrder(
         orderType: 'SELL',
         status: 'OPEN',
         price: {
-          lte: price, // Match sell orders with price <= buy price
+          lte: price,
         },
       },
       orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
@@ -123,28 +122,28 @@ export async function createBuyOrder(
 
       remainingBuyQuantity -= tradeQuantity
       matchedPrice = sellOrder.price
-
-      // For partial match, break out and process remaining quantity
-      if (remainingBuyQuantity === BigInt(0)) break
     }
 
-    // Unlock the remaining balance if not fully spent
-    const amountToUnlock = totalCost - spentAmount
-    await prisma.inrBalance.update({
-      where: { userId },
-      data: {
-        lockedBalance: { decrement: totalCost },
-        balance: { increment: amountToUnlock },
-      },
-    })
+    // Calculate final amounts
+    const remainingOrderCost = remainingBuyQuantity * price // Amount to keep locked
+    const unlockAmount = totalCost - (spentAmount + remainingOrderCost)
 
-    // Update buy order status based on remaining quantity
+    // Update the buy order's status
     await prisma.order.update({
       where: { id: buyOrder.id },
       data: {
         remainingQuantity: remainingBuyQuantity,
         status:
           remainingBuyQuantity === BigInt(0) ? 'FILLED' : 'PARTIALLY_FILLED',
+      },
+    })
+
+    // Final balance adjustment
+    await prisma.inrBalance.update({
+      where: { userId },
+      data: {
+        lockedBalance: { decrement: spentAmount + unlockAmount }, // Reduce lock by spent + excess
+        balance: { increment: unlockAmount }, // Return only excess amount to balance
       },
     })
 
