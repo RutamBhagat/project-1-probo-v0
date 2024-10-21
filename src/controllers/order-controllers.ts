@@ -67,9 +67,14 @@ export const handleBuyOrder = async (
         remainingQuantity: remainingQuantity.toString(),
       })
     }
+
+    // If somehow we reach here without a response
+    return res.status(500).json({ message: 'Unexpected error' })
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error occurred'
+
+    console.error('Error handling buy order:', errorMessage) // Log the error for debugging
     return res.status(400).json({ message: errorMessage })
   }
 }

@@ -2,13 +2,9 @@ import request from 'supertest'
 import { app, prisma } from '@/app'
 import { beforeAll, afterAll, describe, expect, it } from 'vitest'
 
-describe('E-to-E-1', () => {
+describe('E-to-E-3', () => {
   beforeAll(async () => {
-    await request(app).post('/api/reset') // resets the data values
-  })
-
-  afterAll(async () => {
-    await prisma.$disconnect()
+    await request(app).post('/api/reset') // Reset the data values
   })
 
   it('should handle multiple matching orders and price priorities correctly', async () => {
@@ -139,6 +135,16 @@ describe('E-to-E-1', () => {
       locked: 0,
     })
 
+    // Additional onramp for user2
+    await request(app)
+      .post('/api/onramp/inr')
+      .send({ userId: 'user2', amount: 200000 })
+
+    // Verify updated balance for user2
+    response = await request(app).get('/api/balances/inr')
+    expect(response.status).toBe(200)
+    expect(response.body['user2']).toEqual({ balance: 360000, locked: 0 }) // 160000 (previous balance) + 200000 (new onramp)
+
     // Step 9: User2 places a buy order for 50 tokens, should partially match the 1500 sell
     response = await request(app).post('/api/order/buy').send({
       userId: 'user2',
@@ -149,48 +155,55 @@ describe('E-to-E-1', () => {
     })
     expect(response.status).toBe(200)
     expect(response.body.message).toBe(
-      'Buy order matched partially, 50 remaining'
+      'Buy order partially matched, 50 tokens bought at 1500'
     )
 
-    // // Check INR balances after partial matching
-    // response = await request(app).get('/api/balances/inr')
-    // expect(response.status).toBe(200)
-    // expect(response.body['user2']).toEqual({ balance: 85000, locked: 0 })
+    // Check INR balances after partial matching
+    response = await request(app).get('/api/balances/inr')
+    expect(response.status).toBe(200)
+    expect(response.body['user2']).toEqual({ balance: 285000, locked: 0 }) // 360000 - (50 * 1500)
+    expect(response.body['user1']).toEqual({ balance: 275000, locked: 0 }) // 200000 + (100 * 1400) + (50 * 1500)
 
-    // // Check order book after partial matching
-    // response = await request(app).get('/api/orderbook')
-    // expect(response.status).toBe(200)
-    // expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
-    //   1500: { total: 50, orders: { user1: 50 } },
-    // })
+    // Check order book after partial matching
+    response = await request(app).get('/api/orderbook')
+    expect(response.status).toBe(200)
+    expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
+      1500: { total: 50, orders: { user1: 50 } },
+    })
 
-    // // Step 10: User1 cancels the remaining 50 sell order
-    // response = await request(app).post('/api/order/cancel').send({
-    //   userId: 'user1',
-    //   stockSymbol: 'ETH_USD_15_Oct_2024_12_00',
-    //   quantity: 50,
-    //   price: 1500,
-    //   stockType: 'yes',
-    // })
-    // expect(response.status).toBe(200)
-    // expect(response.body.message).toBe('Sell order canceled')
+    // Step 10: User1 cancels the remaining 50 sell order
+    response = await request(app).post('/api/order/cancel').send({
+      userId: 'user1',
+      stockSymbol: 'ETH_USD_15_Oct_2024_12_00',
+      quantity: 50,
+      price: 1500,
+      stockType: 'yes',
+    })
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe('Sell order canceled')
 
-    // // Check the order book to ensure it's empty
-    // response = await request(app).get('/api/orderbook')
-    // expect(response.status).toBe(200)
-    // expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({}) // No orders left
+    // Check the order book to ensure it's empty
+    response = await request(app).get('/api/orderbook')
+    expect(response.status).toBe(200)
+    expect(response.body['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({})
 
-    // // Step 11: Verify stock balances after matching and canceling
-    // response = await request(app).get('/api/balances/stock')
-    // expect(response.status).toBe(200)
-    // expect(response.body['user1']['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
-    //   quantity: 50,
-    //   locked: 0,
-    // })
-    // expect(response.body['user2']['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
-    //   quantity: 150,
-    //   locked: 0,
-    // })
+    // Step 11: Verify stock balances after matching and canceling
+    response = await request(app).get('/api/balances/stock')
+    expect(response.status).toBe(200)
+    expect(response.body['user1']['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
+      quantity: 50,
+      locked: 0,
+    })
+    expect(response.body['user2']['ETH_USD_15_Oct_2024_12_00']['yes']).toEqual({
+      quantity: 150,
+      locked: 0,
+    })
+
+    // Final INR balance check
+    response = await request(app).get('/api/balances/inr')
+    expect(response.status).toBe(200)
+    expect(response.body['user1']).toEqual({ balance: 275000, locked: 0 })
+    expect(response.body['user2']).toEqual({ balance: 285000, locked: 0 })
   })
 
   // it('should handle multiple buy orders with price priority matching', async () => {
