@@ -1,7 +1,7 @@
 import {
+  cancelOrder,
   createBuyOrder,
   createSellOrder,
-  cancelOrder,
 } from '@/services/order-services'
 import type { Request, Response } from 'express'
 
@@ -15,8 +15,8 @@ type OrderRequestBody = {
 
 type OrderResponse = {
   message: string
-  matchedPrice?: string // optional, included if an order matches
-  remainingQuantity?: string // optional, for partial matches
+  matchedPrice?: string
+  remainingQuantity?: string
 }
 
 export const handleBuyOrder = async (
@@ -45,31 +45,28 @@ export const handleBuyOrder = async (
       stockType.toLowerCase()
     )
 
-    // Handling response for full or partial match
-
-    // If matched at exact price requested
-    if (matchedPrice === null && remainingQuantity === BigInt(0)) {
+    // Full match
+    if (remainingQuantity === BigInt(0)) {
+      const message = matchedPrice
+        ? `Buy order matched at best price ${matchedPrice.toString()}`
+        : 'Buy order placed and fully executed'
       return res.status(200).json({
-        message: 'Buy order placed and trade executed',
+        message,
+        matchedPrice: matchedPrice?.toString(),
       })
     }
 
-    // If matched at better price
-    if (matchedPrice !== null && remainingQuantity === BigInt(0)) {
+    // Partial match
+    if (remainingQuantity > BigInt(0)) {
+      const message = matchedPrice
+        ? `Buy order matched partially, ${remainingQuantity.toString()} remaining`
+        : 'Buy order placed, no match found yet'
       return res.status(200).json({
-        message: `Buy order matched at best price ${matchedPrice.toString()}`,
-        matchedPrice: matchedPrice.toString(),
+        message,
+        matchedPrice: matchedPrice?.toString(),
+        remainingQuantity: remainingQuantity.toString(),
       })
     }
-
-    // If no match found or partial match
-    const msg = matchedPrice
-      ? 'Buy order partially matched'
-      : 'Buy order placed, but no match found'
-    return res.status(200).json({
-      message: msg,
-      remainingQuantity: quantity,
-    })
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error occurred'
