@@ -1,5 +1,6 @@
 import { prisma } from '@/app'
 import { Logger } from '@/utils/logger'
+import { Prisma } from '@prisma/client'
 
 const logger = new Logger('BuyOrderService')
 
@@ -11,8 +12,8 @@ interface TradeResult {
 interface BalanceUpdate {
   initialLock: bigint
   spent: bigint
-  unlocked: bigint
-  remaining: bigint
+  priceUnlock: bigint
+  remainingLocked: bigint
 }
 
 export async function createBuyOrder(
@@ -22,226 +23,235 @@ export async function createBuyOrder(
   price: bigint,
   tokenType: string
 ): Promise<TradeResult> {
-  return await prisma.$transaction(async (prisma) => {
-    const balanceUpdates: BalanceUpdate = {
-      initialLock: BigInt(0),
-      spent: BigInt(0),
-      unlocked: BigInt(0),
-      remaining: BigInt(0),
-    }
+  // Use serializable isolation for strict consistency
+  return await prisma.$transaction(
+    async (prisma) => {
+      const balanceUpdates: BalanceUpdate = {
+        initialLock: BigInt(0),
+        spent: BigInt(0),
+        priceUnlock: BigInt(0),
+        remainingLocked: BigInt(0),
+      }
 
-    const totalCost = quantity * price
-    balanceUpdates.initialLock = totalCost
+      const totalCost = quantity * price
+      balanceUpdates.initialLock = totalCost
 
-    logger.debug('Starting buy order', {
-      userId,
-      quantity: quantity.toString(),
-      price: price.toString(),
-      totalCost: totalCost.toString(),
-    })
-
-    // Check and lock buyer's balance
-    const buyerBalance = await prisma.inrBalance.findUnique({
-      where: { userId },
-    })
-
-    if (!buyerBalance || buyerBalance.balance < totalCost) {
-      logger.error('Insufficient balance', {
-        required: totalCost.toString(),
-        available: buyerBalance?.balance.toString() || '0',
-      })
-      throw new Error('Insufficient INR balance')
-    }
-
-    // Lock the full amount initially
-    await prisma.inrBalance.update({
-      where: { userId },
-      data: {
-        balance: { decrement: totalCost },
-        lockedBalance: { increment: totalCost },
-      },
-    })
-
-    logger.debug('Initial balance locked', {
-      amount: totalCost.toString(),
-      userId,
-    })
-
-    let spentAmount = BigInt(0)
-    let remainingBuyQuantity = quantity
-    let matchedPrice: bigint | null = null
-
-    // Create the buy order
-    const buyOrder = await prisma.order.create({
-      data: {
+      logger.debug('Starting buy order', {
         userId,
-        symbolId,
-        orderType: 'BUY',
-        tokenType,
-        quantity,
-        remainingQuantity: quantity,
-        price,
-        status: 'OPEN',
-      },
-    })
-
-    logger.debug('Buy order created', { orderId: buyOrder.id })
-
-    // Find matching sell orders
-    const matchingSellOrders = await prisma.order.findMany({
-      where: {
-        symbolId,
-        tokenType,
-        orderType: 'SELL',
-        status: 'OPEN',
-        price: {
-          lte: price,
-        },
-      },
-      orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
-    })
-
-    logger.debug('Found matching sell orders', {
-      count: matchingSellOrders.length,
-    })
-
-    // Process each matching sell order
-    for (const sellOrder of matchingSellOrders) {
-      if (remainingBuyQuantity === BigInt(0)) break
-
-      const tradeQuantity =
-        sellOrder.remainingQuantity < remainingBuyQuantity
-          ? sellOrder.remainingQuantity
-          : remainingBuyQuantity
-
-      const tradeValue = tradeQuantity * sellOrder.price
-
-      logger.debug('Processing trade', {
-        sellOrderId: sellOrder.id,
-        quantity: tradeQuantity.toString(),
-        price: sellOrder.price.toString(),
-        value: tradeValue.toString(),
+        quantity: quantity.toString(),
+        price: price.toString(),
+        totalCost: totalCost.toString(),
       })
 
-      // Create trade record
-      await prisma.trade.create({
+      // Verify and lock initial balance
+      const buyerBalance = await prisma.inrBalance.findUnique({
+        where: { userId },
+      })
+
+      if (!buyerBalance || buyerBalance.balance < totalCost) {
+        logger.error('Insufficient balance', {
+          required: totalCost.toString(),
+          available: buyerBalance?.balance.toString() || '0',
+        })
+        throw new Error('Insufficient INR balance')
+      }
+
+      // Initial balance lock
+      await prisma.inrBalance.update({
+        where: { userId },
         data: {
+          balance: { decrement: totalCost },
+          lockedBalance: { increment: totalCost },
+        },
+      })
+
+      logger.debug('Initial balance locked', {
+        amount: totalCost.toString(),
+        userId,
+      })
+
+      let spentAmount = BigInt(0)
+      let remainingBuyQuantity = quantity
+      let matchedPrice: bigint | null = null
+      let totalPriceUnlock = BigInt(0)
+
+      const buyOrder = await prisma.order.create({
+        data: {
+          userId,
+          symbolId,
+          orderType: 'BUY',
+          tokenType,
+          quantity,
+          remainingQuantity: quantity,
+          price,
+          status: 'OPEN',
+        },
+      })
+
+      // Find and process matching sell orders
+      const matchingSellOrders = await prisma.order.findMany({
+        where: {
           symbolId,
           tokenType,
-          buyerId: userId,
-          sellerId: sellOrder.userId,
-          buyerOrderId: buyOrder.id,
-          sellerOrderId: sellOrder.id,
-          quantity: tradeQuantity,
-          price: sellOrder.price,
+          orderType: 'SELL',
+          status: 'OPEN',
+          price: {
+            lte: price,
+          },
         },
+        orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
       })
 
-      // Update balances
-      await prisma.stockBalance.upsert({
-        where: {
-          userId_symbolId_tokenType: {
+      logger.debug('Processing matching orders', {
+        count: matchingSellOrders.length,
+      })
+
+      // Process each matching trade
+      for (const sellOrder of matchingSellOrders) {
+        if (remainingBuyQuantity === BigInt(0)) break
+
+        const tradeQuantity =
+          sellOrder.remainingQuantity < remainingBuyQuantity
+            ? sellOrder.remainingQuantity
+            : remainingBuyQuantity
+
+        const tradeValue = tradeQuantity * sellOrder.price
+        const priceDifference = price - sellOrder.price
+        const priceUnlock = tradeQuantity * priceDifference
+
+        logger.debug('Processing trade', {
+          tradeQuantity: tradeQuantity.toString(),
+          tradeValue: tradeValue.toString(),
+          priceDifference: priceDifference.toString(),
+          priceUnlock: priceUnlock.toString(),
+        })
+
+        // Create trade record
+        await prisma.trade.create({
+          data: {
+            symbolId,
+            tokenType,
+            buyerId: userId,
+            sellerId: sellOrder.userId,
+            buyerOrderId: buyOrder.id,
+            sellerOrderId: sellOrder.id,
+            quantity: tradeQuantity,
+            price: sellOrder.price,
+          },
+        })
+
+        // Update buyer's stock balance
+        await prisma.stockBalance.upsert({
+          where: {
+            userId_symbolId_tokenType: {
+              userId,
+              symbolId,
+              tokenType,
+            },
+          },
+          update: { quantity: { increment: tradeQuantity } },
+          create: {
             userId,
             symbolId,
             tokenType,
+            quantity: tradeQuantity,
           },
-        },
-        update: { quantity: { increment: tradeQuantity } },
-        create: {
-          userId,
-          symbolId,
-          tokenType,
-          quantity: tradeQuantity,
-        },
-      })
+        })
 
-      // Update seller's balance
-      await prisma.inrBalance.update({
-        where: { userId: sellOrder.userId },
-        data: { balance: { increment: tradeValue } },
-      })
+        // Update seller's balances
+        await prisma.inrBalance.update({
+          where: { userId: sellOrder.userId },
+          data: { balance: { increment: tradeValue } },
+        })
 
-      spentAmount += tradeValue
+        await prisma.stockBalance.update({
+          where: {
+            userId_symbolId_tokenType: {
+              userId: sellOrder.userId,
+              symbolId,
+              tokenType,
+            },
+          },
+          data: { lockedQuantity: { decrement: tradeQuantity } },
+        })
+
+        // Update sell order status
+        await prisma.order.update({
+          where: { id: sellOrder.id },
+          data: {
+            remainingQuantity: { decrement: tradeQuantity },
+            status:
+              sellOrder.remainingQuantity === tradeQuantity
+                ? 'FILLED'
+                : 'PARTIALLY_FILLED',
+          },
+        })
+
+        spentAmount += tradeValue
+        totalPriceUnlock += priceUnlock
+        remainingBuyQuantity -= tradeQuantity
+        matchedPrice = sellOrder.price
+
+        logger.debug('Trade completed', {
+          remainingQuantity: remainingBuyQuantity.toString(),
+          spentSoFar: spentAmount.toString(),
+          totalPriceUnlock: totalPriceUnlock.toString(),
+        })
+      }
+
+      // Calculate final amounts
+      const remainingLocked = remainingBuyQuantity * price
+
       balanceUpdates.spent = spentAmount
+      balanceUpdates.priceUnlock = totalPriceUnlock
+      balanceUpdates.remainingLocked = remainingLocked
 
-      // Update sell order
+      logger.debug('Final balance calculations', {
+        totalCost: totalCost.toString(),
+        spentAmount: spentAmount.toString(),
+        priceUnlock: totalPriceUnlock.toString(),
+        remainingLocked: remainingLocked.toString(),
+      })
+
+      // Update buy order status
       await prisma.order.update({
-        where: { id: sellOrder.id },
+        where: { id: buyOrder.id },
         data: {
-          remainingQuantity: { decrement: tradeQuantity },
+          remainingQuantity: remainingBuyQuantity,
           status:
-            sellOrder.remainingQuantity === tradeQuantity
-              ? 'FILLED'
-              : 'PARTIALLY_FILLED',
+            remainingBuyQuantity === BigInt(0) ? 'FILLED' : 'PARTIALLY_FILLED',
         },
       })
 
-      // Update seller's stock balance
-      await prisma.stockBalance.update({
-        where: {
-          userId_symbolId_tokenType: {
-            userId: sellOrder.userId,
-            symbolId,
-            tokenType,
+      // Perform final balance updates
+      const finalBalanceUpdate = await prisma.inrBalance.update({
+        where: { userId },
+        data: {
+          // Only unlock the spent amount plus price difference unlocks
+          lockedBalance: {
+            decrement: spentAmount + totalPriceUnlock,
+          },
+          // Return price difference unlocks to available balance
+          balance: {
+            increment: totalPriceUnlock,
           },
         },
-        data: { lockedQuantity: { decrement: tradeQuantity } },
       })
 
-      remainingBuyQuantity -= tradeQuantity
-      matchedPrice = sellOrder.price
-
-      logger.debug('Trade completed', {
-        remainingQuantity: remainingBuyQuantity.toString(),
-        spentSoFar: spentAmount.toString(),
+      logger.debug('Order completed', {
+        balanceUpdates,
+        finalBalance: finalBalanceUpdate,
       })
-    }
 
-    // Calculate final amounts
-    const remainingOrderCost = remainingBuyQuantity * price
-    balanceUpdates.remaining = remainingOrderCost
-
-    // Calculate unlock amount based on price differences
-    const unlockAmount = totalCost - (spentAmount + remainingOrderCost)
-    balanceUpdates.unlocked = unlockAmount
-
-    logger.debug('Final balance calculations', {
-      totalCost: totalCost.toString(),
-      spentAmount: spentAmount.toString(),
-      remainingOrderCost: remainingOrderCost.toString(),
-      unlockAmount: unlockAmount.toString(),
-    })
-
-    // Update buy order status
-    await prisma.order.update({
-      where: { id: buyOrder.id },
-      data: {
+      return {
+        matchedPrice: matchedPrice === price ? null : matchedPrice,
         remainingQuantity: remainingBuyQuantity,
-        status:
-          remainingBuyQuantity === BigInt(0) ? 'FILLED' : 'PARTIALLY_FILLED',
-      },
-    })
-
-    // Adjust final balances
-    await prisma.inrBalance.update({
-      where: { userId },
-      data: {
-        lockedBalance: { decrement: spentAmount + unlockAmount },
-        balance: { increment: unlockAmount },
-      },
-    })
-
-    logger.debug('Order completed', {
-      balanceUpdates,
-      finalStatus:
-        remainingBuyQuantity === BigInt(0) ? 'FILLED' : 'PARTIALLY_FILLED',
-    })
-
-    return {
-      matchedPrice: matchedPrice === price ? null : matchedPrice,
-      remainingQuantity: remainingBuyQuantity,
+      }
+    },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     }
-  })
+  )
 }
 
 export const createSellOrder = async (
