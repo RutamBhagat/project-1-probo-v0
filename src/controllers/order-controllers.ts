@@ -60,7 +60,7 @@ export const handleBuyOrder = async (
     if (remainingQuantity > BigInt(0)) {
       const message = matchedPrice
         ? `Buy order matched partially, ${remainingQuantity.toString()} remaining`
-        : 'Buy order placed, no match found yet'
+        : 'Buy order placed and pending'
       return res.status(200).json({
         message,
         matchedPrice: matchedPrice?.toString(),
