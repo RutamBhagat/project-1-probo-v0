@@ -7,6 +7,14 @@ datasource db {
   url      = env("DB_URL")
 }
 
+// sqlite does not support enums
+// enum OrderStatus {
+//   OPEN
+//   PARTIALLY_FILLED
+//   FILLED
+//   CANCELLED
+// }
+
 model User {
   id              String           @id @unique
   createdAt       DateTime         @default(now()) @map("created_at")

@@ -4,9 +4,17 @@ import { Prisma } from '@prisma/client'
 
 const logger = new Logger('BuyOrderService')
 
+export enum OrderStatus {
+  OPEN = 'OPEN',
+  PARTIALLY_FILLED = 'PARTIALLY_FILLED',
+  FILLED = 'FILLED',
+  CANCELLED = 'CANCELLED',
+}
+
 interface TradeResult {
   matchedPrice: bigint | null
   remainingQuantity: bigint
+  status: OrderStatus
 }
 
 interface BalanceUpdate {
@@ -35,12 +43,12 @@ export async function createBuyOrder(
       const totalCost = quantity * price
       balanceUpdates.initialLock = totalCost
 
-      // logger.debug('Starting buy order', {
-      //   userId,
-      //   quantity: quantity.toString(),
-      //   price: price.toString(),
-      //   totalCost: totalCost.toString(),
-      // })
+      logger.debug('Starting buy order', {
+        userId,
+        quantity: quantity.toString(),
+        price: price.toString(),
+        totalCost: totalCost.toString(),
+      })
 
       // Verify and lock initial balance
       const buyerBalance = await prisma.inrBalance.findUnique({
@@ -48,10 +56,10 @@ export async function createBuyOrder(
       })
 
       if (!buyerBalance || buyerBalance.balance < totalCost) {
-        // logger.error('Insufficient balance', {
-        //   required: totalCost.toString(),
-        //   available: buyerBalance?.balance.toString() || '0',
-        // })
+        logger.error('Insufficient balance', {
+          required: totalCost.toString(),
+          available: buyerBalance?.balance.toString() || '0',
+        })
         throw new Error('Insufficient INR balance')
       }
 
@@ -64,15 +72,16 @@ export async function createBuyOrder(
         },
       })
 
-      // logger.debug('Initial balance locked', {
-      //   amount: totalCost.toString(),
-      //   userId,
-      // })
+      logger.debug('Initial balance locked', {
+        amount: totalCost.toString(),
+        userId,
+      })
 
       let spentAmount = BigInt(0)
       let remainingBuyQuantity = quantity
       let matchedPrice: bigint | null = null
       let totalPriceUnlock = BigInt(0)
+      let orderStatus: OrderStatus = OrderStatus.OPEN
 
       const buyOrder = await prisma.order.create({
         data: {
@@ -101,9 +110,9 @@ export async function createBuyOrder(
         orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
       })
 
-      // logger.debug('Processing matching orders', {
-      //   count: matchingSellOrders.length,
-      // })
+      logger.debug('Processing matching orders', {
+        count: matchingSellOrders.length,
+      })
 
       // Process each matching trade
       for (const sellOrder of matchingSellOrders) {
@@ -118,12 +127,12 @@ export async function createBuyOrder(
         const priceDifference = price - sellOrder.price // Price difference between buy and sell
         const priceUnlock = tradeQuantity * priceDifference // Amount to unlock due to price difference
 
-        // logger.debug('Processing trade', {
-        //   tradeQuantity: tradeQuantity.toString(),
-        //   tradeValue: tradeValue.toString(),
-        //   priceDifference: priceDifference.toString(),
-        //   priceUnlock: priceUnlock.toString(),
-        // })
+        logger.debug('Processing trade', {
+          tradeQuantity: tradeQuantity.toString(),
+          tradeValue: tradeValue.toString(),
+          priceDifference: priceDifference.toString(),
+          priceUnlock: priceUnlock.toString(),
+        })
 
         // Create trade record
         await prisma.trade.create({
@@ -191,12 +200,28 @@ export async function createBuyOrder(
         remainingBuyQuantity -= tradeQuantity // Decrease remaining quantity to buy
         matchedPrice = sellOrder.price // Update matched price to the sell price
 
-        // logger.debug('Trade completed', {
-        //   remainingQuantity: remainingBuyQuantity.toString(),
-        //   spentSoFar: spentAmount.toString(),
-        //   totalPriceUnlock: totalPriceUnlock.toString(),
-        // })
+        logger.debug('Trade completed', {
+          remainingQuantity: remainingBuyQuantity.toString(),
+          spentSoFar: spentAmount.toString(),
+          totalPriceUnlock: totalPriceUnlock.toString(),
+        })
       }
+
+      // Determine the final order status
+      if (remainingBuyQuantity === BigInt(0)) {
+        orderStatus = OrderStatus.FILLED
+      } else if (remainingBuyQuantity < quantity) {
+        orderStatus = OrderStatus.PARTIALLY_FILLED
+      }
+
+      // Update buy order status
+      await prisma.order.update({
+        where: { id: buyOrder.id },
+        data: {
+          remainingQuantity: remainingBuyQuantity,
+          status: orderStatus,
+        },
+      })
 
       // Final balance calculations
       const remainingLocked = remainingBuyQuantity * price // Lock the remaining quantity not yet matched
@@ -205,21 +230,11 @@ export async function createBuyOrder(
       balanceUpdates.priceUnlock = totalPriceUnlock // Total amount unlocked due to price differences
       balanceUpdates.remainingLocked = remainingLocked // Amount still locked for remaining quantity
 
-      // logger.debug('Final balance calculations', {
-      //   totalCost: totalCost.toString(),
-      //   spentAmount: spentAmount.toString(),
-      //   priceUnlock: totalPriceUnlock.toString(),
-      //   remainingLocked: remainingLocked.toString(),
-      // })
-
-      // Update buy order status
-      await prisma.order.update({
-        where: { id: buyOrder.id },
-        data: {
-          remainingQuantity: remainingBuyQuantity, // Update remaining buy quantity
-          status:
-            remainingBuyQuantity === BigInt(0) ? 'FILLED' : 'PARTIALLY_FILLED', // Set status based on remaining quantity
-        },
+      logger.debug('Final balance calculations', {
+        totalCost: totalCost.toString(),
+        spentAmount: spentAmount.toString(),
+        priceUnlock: totalPriceUnlock.toString(),
+        remainingLocked: remainingLocked.toString(),
       })
 
       // **Fix**: Ensure that lockedBalance decrement does not include unmatchedQuantityPriceUnlock
@@ -237,17 +252,20 @@ export async function createBuyOrder(
         },
       })
 
-      // logger.debug('Order completed', {
-      //   balanceUpdates,
-      // })
+      logger.debug('Order completed', {
+        status: orderStatus,
+        remainingQuantity: remainingBuyQuantity.toString(),
+        matchedPrice: matchedPrice?.toString() || null,
+      })
 
       return {
-        matchedPrice: matchedPrice === price ? null : matchedPrice, // Null if matched exactly at buy price
-        remainingQuantity: remainingBuyQuantity, // Return remaining quantity after all trades
+        matchedPrice: matchedPrice === price ? null : matchedPrice,
+        remainingQuantity: remainingBuyQuantity,
+        status: orderStatus,
       }
     },
     {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable, // Ensure strict isolation for consistency
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     }
   )
 }
@@ -324,7 +342,9 @@ export const cancelOrder = async (
       tokenType,
       orderType,
       price,
-      status: 'OPEN',
+      status: {
+        in: ['OPEN', 'PARTIALLY_FILLED'],
+      },
       remainingQuantity: quantity,
     },
   })

@@ -2,6 +2,7 @@ import {
   cancelOrder,
   createBuyOrder,
   createSellOrder,
+  OrderStatus,
 } from '@/services/order-services'
 import type { Request, Response } from 'express'
 
@@ -17,6 +18,7 @@ type OrderResponse = {
   message: string
   matchedPrice?: string
   remainingQuantity?: string
+  status: OrderStatus
 }
 
 export const handleBuyOrder = async (
@@ -28,16 +30,20 @@ export const handleBuyOrder = async (
 
     // Input validation
     if (!userId || !stockSymbol || !quantity || !price || !stockType) {
-      return res.status(400).json({ message: 'Missing required fields' })
+      return res.status(400).json({
+        message: 'Missing required fields',
+        status: OrderStatus.CANCELLED,
+      })
     }
     if (isNaN(Number(quantity)) || isNaN(Number(price))) {
-      return res
-        .status(400)
-        .json({ message: 'Quantity and Price must be valid numbers' })
+      return res.status(400).json({
+        message: 'Quantity and Price must be valid numbers',
+        status: OrderStatus.CANCELLED,
+      })
     }
 
     // Service call to create buy order
-    const { matchedPrice, remainingQuantity } = await createBuyOrder(
+    const { matchedPrice, remainingQuantity, status } = await createBuyOrder(
       userId,
       stockSymbol,
       BigInt(quantity),
@@ -45,40 +51,47 @@ export const handleBuyOrder = async (
       stockType.toLowerCase()
     )
 
-    // Full match
-    if (remainingQuantity === BigInt(0)) {
-      const message = matchedPrice
-        ? `Buy order matched at best price ${matchedPrice.toString()}`
-        : 'Buy order placed and fully executed'
-      return res.status(200).json({
-        message,
-        matchedPrice: matchedPrice?.toString(),
-      })
+    let message: string
+
+    switch (status) {
+      case OrderStatus.FILLED:
+        message = matchedPrice
+          ? `Buy order fully matched at best price ${matchedPrice.toString()}`
+          : 'Buy order fully executed at requested price'
+        break
+      case OrderStatus.PARTIALLY_FILLED:
+        message = `Buy order partially matched, ${remainingQuantity.toString()} tokens remaining`
+        break
+      case OrderStatus.OPEN:
+        message = 'Buy order placed and pending'
+        break
+      default:
+        message = 'Unexpected order status'
     }
 
-    // Partial match - update this to match the test expectation
-    if (remainingQuantity > BigInt(0)) {
-      const message = `Buy order partially matched, ${remainingQuantity.toString()} tokens remaining` // Updated message to match test
-      return res.status(200).json({
-        message,
-        matchedPrice: matchedPrice?.toString(),
-        remainingQuantity: remainingQuantity.toString(),
-      })
-    }
-
-    return res.status(500).json({ message: 'Unexpected error' })
+    return res.status(200).json({
+      message,
+      matchedPrice: matchedPrice?.toString(),
+      remainingQuantity: remainingQuantity.toString(),
+      status,
+    })
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error occurred'
-
     console.error('Error handling buy order:', errorMessage)
-    return res.status(400).json({ message: errorMessage })
+    return res
+      .status(400)
+      .json({ message: errorMessage, status: OrderStatus.CANCELLED })
   }
+}
+
+type SellOrderResponse = {
+  message: string
 }
 
 export const handleSellOrder = async (
   req: Request<{}, OrderResponse, OrderRequestBody>,
-  res: Response<OrderResponse>
+  res: Response<SellOrderResponse>
 ) => {
   try {
     const { userId, stockSymbol, quantity, price, stockType } = req.body
@@ -110,13 +123,17 @@ export const handleSellOrder = async (
   }
 }
 
+type CancelOrderResponse = {
+  message: string
+}
+
 export const handleCancelOrder = async (
   req: Request<
     {},
     OrderResponse,
     OrderRequestBody & { orderType: 'BUY' | 'SELL' }
   >,
-  res: Response<OrderResponse>
+  res: Response<CancelOrderResponse>
 ) => {
   try {
     const { userId, stockSymbol, quantity, price, stockType, orderType } =
